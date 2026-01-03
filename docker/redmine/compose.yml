@@ -1,0 +1,7 @@
+services:
+
+  redmine:
+    image: redmine:6.1.0
+    restart: always
+    ports:
+      - "13422:3000"
