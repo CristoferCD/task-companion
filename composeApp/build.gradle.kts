@@ -70,3 +70,7 @@ compose.desktop {
         }
     }
 }
+
+tasks.register("printVersionName") {
+    println(compose.desktop.application.nativeDistributions.packageVersion)
+}
