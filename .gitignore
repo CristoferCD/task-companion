@@ -18,3 +18,5 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 data*.db
 log/*
+/composeApp/log/console.log
+/composeApp/src/jvmTest/resources/redmine-api.ipynb
