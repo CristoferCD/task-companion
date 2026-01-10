@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.TaskDto
 import es.cristcd.taskcompanion.tracker.form.TaskForm
+import es.cristcd.taskcompanion.ui.common.SnackbarController
 import kotlinx.datetime.*
 import kotlinx.datetime.format.char
 import org.jetbrains.compose.resources.painterResource
@@ -79,53 +80,104 @@ fun Tracker(day: LocalDate, viewmodel: TrackerViewmodel = viewModel { TrackerVie
 
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
-            val categories = viewmodel.categories.collectAsState().value
-            var expanded by remember { mutableStateOf(false) }
-            var selectedCategory by remember { mutableStateOf<CategoryDto?>(null) }
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = Modifier.widthIn(max = 150.dp)) {
-                OutlinedTextField(
-                    label = { Text("Category") },
-                    value = selectedCategory?.name ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    singleLine = true,
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                    },
-                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                )
 
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    categories.forEach { category ->
-                        DropdownMenuItem(
-                            text = { Text(category.name) },
-                            onClick = { selectedCategory = category; expanded = false },
-                        )
-                    }
+        NewTaskForm(viewmodel.categories.collectAsState().value, onSubmit = { viewmodel.start(it) })
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NewTaskForm(categories: List<CategoryDto>, onSubmit: (TaskForm) -> Unit) {
+    val state = rememberTaskFormState()
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
+        var expanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = Modifier.widthIn(max = 150.dp)) {
+            OutlinedTextField(
+                label = { Text("Category") },
+                value = state.category.value?.name ?: "",
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                categories.forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.name) },
+                        onClick = { state.updateCategory(category); expanded = false },
+                    )
                 }
             }
-            var code by remember { mutableStateOf("") }
-            OutlinedTextField(label = { Text("Code") }, value = code, onValueChange = { code = it }, singleLine = true, modifier = Modifier.widthIn(max = 100.dp))
+        }
 
-            var description by remember { mutableStateOf("") }
-            OutlinedTextField(label = { Text("Description") }, value = description, onValueChange = { description = it }, singleLine = true, modifier = Modifier.weight(1f))
-            FilledIconButton(
-                onClick = { viewmodel.start(TaskForm(selectedCategory!!.id, code, description)) },
-                shape = MaterialTheme.shapes.extraSmall,
-                modifier = Modifier.height(60.dp).width(54.dp).padding(top = 6.dp)
-            ) {
-                Icon(painterResource(Res.drawable.add_24px), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-            }
+        OutlinedTextField(label = { Text("Code") }, value = state.code.value, onValueChange = { state.updateCode(it) }, singleLine = true, modifier = Modifier.widthIn(max = 100.dp))
+        OutlinedTextField(label = { Text("Description") }, value = state.description.value, onValueChange = { state.updateDescription(it) }, singleLine = true, modifier = Modifier.weight(1f))
+
+        FilledIconButton(
+            onClick = { state.getValidatedTaskForm()?.let { onSubmit(it); state.clear() } },
+            shape = MaterialTheme.shapes.extraSmall,
+            modifier = Modifier.height(60.dp).width(54.dp).padding(top = 6.dp)
+        ) {
+            Icon(painterResource(Res.drawable.add_24px), contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }
+
+class TaskFormState {
+    val category = mutableStateOf<CategoryDto?>(null)
+    val code = mutableStateOf("")
+    val description = mutableStateOf("")
+
+    fun updateCategory(newCategory: CategoryDto) {
+        category.value = newCategory
+    }
+
+    fun updateCode(newCode: String) {
+        code.value = newCode
+    }
+
+    fun updateDescription(newDescription: String) {
+        description.value = newDescription
+    }
+
+    fun getValidatedTaskForm(): TaskForm? {
+        try {
+            checkNotNull(category.value)
+            check(code.value.isNotBlank())
+            check(description.value.isNotBlank())
+        } catch (e: IllegalStateException) {
+            SnackbarController.showMessage(e.message ?: "Invalid form")
+            return null
+        }
+
+
+        return TaskForm(
+            category.value!!.id,
+            code.value,
+            description.value
+        )
+    }
+
+    fun clear() {
+        category.value = null
+        code.value = ""
+        description.value = ""
+    }
+}
+
+@Composable
+fun rememberTaskFormState() = remember { TaskFormState() }
 
 @Composable
 fun BadgeDuration(task: TaskDto, modifier: Modifier = Modifier) {
