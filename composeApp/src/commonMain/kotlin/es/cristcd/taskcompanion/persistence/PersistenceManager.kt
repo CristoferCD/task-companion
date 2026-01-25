@@ -2,6 +2,7 @@ package es.cristcd.taskcompanion.persistence
 
 import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.DashboardIssueItem
+import es.cristcd.taskcompanion.persistence.model.DashboardLayout
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.persistence.model.RedmineIssue
 import es.cristcd.taskcompanion.persistence.model.Status
@@ -23,6 +24,7 @@ object PersistenceManager {
             SchemaUtils.create(
                 Category,
                 DashboardIssueItem,
+                DashboardLayout,
                 FollowedRedmineVersion,
                 RedmineIssue,
                 Status,

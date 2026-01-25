@@ -87,6 +87,16 @@ object RedmineService {
         }.body()
     }
 
+    suspend fun listIssuesByQuery(queryId: Long, projectId: Long?): IssueList {
+        return client!!.get("issues.json") {
+            parameter("query_id", queryId)
+            if (projectId != null) {
+                parameter("project_id", projectId)
+            }
+            parameter("limit", 50)
+        }.body()
+    }
+
     suspend fun listMonitoredIssues(): IssueList {
         return client!!.get("issues.json") {
             url {
@@ -160,6 +170,24 @@ object RedmineService {
 
     suspend fun listStatus(): List<IssueStatus> {
         return client!!.get("issue_statuses.json").body<IssueStatusList>().issueStatuses
+    }
+
+    suspend fun listAllQueries(): List<Query> {
+        val result = mutableListOf<Query>()
+        val limit = 100
+        var offset = 0
+        do {
+            val items = client!!.get("queries.json") {
+                parameter("limit", limit)
+                parameter("offset", offset)
+            }.body<QueriesRoot>()
+
+            result.addAll(items.queries)
+            offset += items.queries.size
+
+        } while (items.queries.isNotEmpty())
+
+        return result
     }
 
     fun clearCredentials() {

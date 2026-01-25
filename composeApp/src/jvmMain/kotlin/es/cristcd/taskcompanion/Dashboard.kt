@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import es.cristcd.taskcompanion.persistence.model.DashboardItem
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
@@ -23,7 +25,7 @@ import task_companion.composeapp.generated.resources.*
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class, ExperimentalMaterialApi::class)
 @Composable
 fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = viewModel { DashboardViewmodel() }) {
     LaunchedEffect(true) {
@@ -31,9 +33,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
     }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        val issues = viewmodel.issuesAssigned.collectAsState()
-        val issuesMonitorizados = viewmodel.issuesMonitored.collectAsState()
-        val versions = viewmodel.versions.collectAsState()
+        val items = viewmodel.layoutItems.collectAsState()
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             var text by remember { mutableStateOf("") }
@@ -73,7 +73,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
             val alphaAnimation = remember {
                 Animatable(0.5f)
             }
-            LaunchedEffect(issues.value, issuesMonitorizados.value) {
+            LaunchedEffect(items.value) {
                 alphaAnimation.snapTo(0.5f)
                 alphaAnimation.animateTo(0f, animationSpec = tween(3000))
             }
@@ -85,16 +85,119 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxHeight().clip(RoundedCornerShape(topStart = 0.dp, topEnd = 16.dp, bottomStart = 0.dp, bottomEnd = 0.dp)).background(MaterialTheme.colorScheme.surface).weight(1f)
             ) {
-                dashboardSection("Asignados a mi", viewmodel::reloadAssigned, issues.value, "No issues assigned") {
-                    TaskCard(it, alphaAnimation, onClick = { navController.navigate(Screen.Issue(it.id)) }, onStart = { viewmodel.startTask(it); sidebarNavigation = SidebarNavigation.Tracker })
+                items.value.forEach { group ->
+                    when(val content = group.content) {
+                        is DashboardGroupContent.IssueList -> {
+                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list, "No ${group.title.lowercase()}") {
+                                TaskCard(it, alphaAnimation, onClick = { navController.navigate(Screen.Issue(it.id)) }, onStart = { viewmodel.startTask(it); sidebarNavigation = SidebarNavigation.Tracker })
+                            }
+                        }
+                        is DashboardGroupContent.VersionList -> {
+                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list, "No ${group.title.lowercase()}") {
+                                VersionCard(it.version, it.analytics, onClick = { navController.navigate(Screen.Version(it.version.id)) })
+                            }
+                        }
+                    }
                 }
 
-                dashboardSection("Monitorizados", viewmodel::reloadMonitored, issuesMonitorizados.value, "No monitored issues") {
-                    TaskCard(it, alphaAnimation, onClick = { navController.navigate(Screen.Issue(it.id)) }, onStart = { viewmodel.startTask(it); sidebarNavigation = SidebarNavigation.Tracker })
-                }
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    var showNewGroupForm by remember { mutableStateOf(false) }
+                    if (!showNewGroupForm) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(40.dp).clip(MaterialTheme.shapes.medium),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            IconButton(onClick = { showNewGroupForm = true }) {
+                                Icon(painterResource(Res.drawable.add_24px), "Add")
+                            }
+                        }
+                    } else {
+                        val queries = viewmodel.availableQueries.collectAsState()
+                        LaunchedEffect(showNewGroupForm) {
+                            if (showNewGroupForm) {
+                                viewmodel.loadRedmineQueries()
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            var groupName by remember { mutableStateOf("") }
+                            var itemBoxExpanded by remember { mutableStateOf(false) }
+                            var selectedGroupItemName by remember { mutableStateOf("") }
+                            var groupItem by remember { mutableStateOf<DashboardItem?>(null)}
+                            OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("Group Name") })
+                            ExposedDropdownMenuBox(expanded = itemBoxExpanded, onExpandedChange = { itemBoxExpanded = !itemBoxExpanded }, modifier = Modifier.widthIn(max = 500.dp)) {
+                                OutlinedTextField(
+                                    label = { Text("Item") },
+                                    value = selectedGroupItemName,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    singleLine = true,
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = itemBoxExpanded)
+                                    },
+                                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                                )
 
-                dashboardSection("Versiones seguidas", viewmodel::reloadVersions, versions.value, "No versions followed") {
-                    VersionCard(it.version, it.analytics, onClick = { navController.navigate(Screen.Version(it.version.id)) })
+                                ExposedDropdownMenu(
+                                    expanded = itemBoxExpanded,
+                                    onDismissRequest = { itemBoxExpanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Asignados a mi") },
+                                        onClick = {
+                                            selectedGroupItemName = "Asignados a mi"
+                                            groupItem = DashboardItem.AssignedToMe
+                                            itemBoxExpanded = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Monitorizados") },
+                                        onClick = {
+                                            selectedGroupItemName = "Monitorizados"
+                                            groupItem = DashboardItem.Monitored
+                                            itemBoxExpanded = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Versiones seguidas") },
+                                        onClick = {
+                                            selectedGroupItemName = "Versiones seguidas"
+                                            groupItem = DashboardItem.Monitored
+                                            itemBoxExpanded = false
+                                        }
+                                    )
+                                    queries.value.forEach { (project, queryList) ->
+                                        HorizontalDivider()
+                                        Text(
+                                            text = project,
+                                            modifier = Modifier.padding(8.dp),
+                                            style = MaterialTheme.typography.labelMedium
+                                        )
+                                        HorizontalDivider()
+                                        queryList.forEach { query ->
+                                            DropdownMenuItem(
+                                                text = { Text("${query.name} (${query.id})") },
+                                                onClick = {
+                                                    selectedGroupItemName = query.name
+                                                    groupItem = DashboardItem.CustomQuery(query.id, query.projectId)
+                                                    itemBoxExpanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                            }
+                            IconButton(onClick = { showNewGroupForm = false; viewmodel.createGroup(groupName, groupItem!!) }) {
+                                Icon(painterResource(Res.drawable.add_24px), "Add")
+                            }
+                            IconButton(onClick = { showNewGroupForm = false }) {
+                                Icon(painterResource(Res.drawable.cancel_24px), contentDescription = null)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -138,12 +241,46 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
     }
 }
 
-private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload: () -> Unit, items: List<T>, emptyMessage: String, content: @Composable LazyStaggeredGridItemScope.(T) -> Unit) {
+private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload: () -> Unit, onUpdateName: (String) -> Unit, onDelete: () -> Unit, items: List<T>, emptyMessage: String, content: @Composable LazyStaggeredGridItemScope.(T) -> Unit) {
     item(span = StaggeredGridItemSpan.FullLine) {
         Row(modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            IconButton(onClick = onReload, modifier = Modifier.size(20.dp)) {
-                Icon(painterResource(Res.drawable.refresh_24px), null, modifier = Modifier.size(16.dp))
+            var editing by remember { mutableStateOf(false) }
+            if (!editing) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                IconButton(onClick = onReload, modifier = Modifier.size(20.dp)) {
+                    Icon(painterResource(Res.drawable.refresh_24px), null, modifier = Modifier.size(16.dp))
+                }
+                var expanded by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.size(20.dp)) {
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(painterResource(Res.drawable.more_vert_24px), contentDescription = "More options")
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Editar nombre") },
+                            onClick = { expanded = false; editing = true }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Eliminar") },
+                            onClick = {
+                                expanded = false
+                                onDelete()
+                            }
+                        )
+                    }
+                }
+            } else {
+                var newName by remember { mutableStateOf(title) }
+                TextField(value = newName, onValueChange = { newName = it })
+                IconButton(onClick = { onUpdateName(newName); editing = false }) {
+                    Icon(painterResource(Res.drawable.save_24px), contentDescription = "More options")
+                }
+                IconButton(onClick = { editing = false }) {
+                    Icon(painterResource(Res.drawable.cancel_24px), contentDescription = null)
+                }
             }
         }
     }

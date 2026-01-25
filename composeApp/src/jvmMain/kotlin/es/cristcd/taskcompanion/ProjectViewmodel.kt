@@ -14,7 +14,6 @@ class ProjectViewmodel: ViewModel() {
     val version = _version.asStateFlow()
 
 
-
     fun load(projectId: Long) {
         viewModelScope.launch {
             _version.emit(ProjectResult.Loading)

@@ -1,6 +1,5 @@
 package es.cristcd.taskcompanion
 
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.persistence.model.Category
@@ -16,20 +15,13 @@ import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.StatusDto
 import es.cristcd.taskcompanion.tracker.form.CategoryForm
 import es.cristcd.taskcompanion.tracker.form.StatusForm
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.jetbrains.exposed.v1.core.dao.id.EntityID
-import org.jetbrains.exposed.v1.core.dao.id.EntityIDFactory
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
-import org.jetbrains.exposed.v1.jdbc.upsert
 
 class SettingsViewmodel : ViewModel() {
     private val _redmineUser = MutableStateFlow<RedmineUserResult>(RedmineUserResult.Loading)
