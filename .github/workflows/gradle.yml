@@ -43,7 +43,7 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
-        files: ./compoaseApp/build/compose/binaries/msi/*.msi
+        files: ./composeApp/build/compose/binaries/main/msi/*.msi
         name: ${{ steps.version.outputs.VERSION_NAME }}
 
     # NOTE: The Gradle Wrapper is the default and recommended way to run Gradle (https://docs.gradle.org/current/userguide/gradle_wrapper.html).

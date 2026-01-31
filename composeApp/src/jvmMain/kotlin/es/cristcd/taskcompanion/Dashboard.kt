@@ -164,7 +164,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                                         text = { Text("Versiones seguidas") },
                                         onClick = {
                                             selectedGroupItemName = "Versiones seguidas"
-                                            groupItem = DashboardItem.Monitored
+                                            groupItem = DashboardItem.FollowedVersions
                                             itemBoxExpanded = false
                                         }
                                     )
