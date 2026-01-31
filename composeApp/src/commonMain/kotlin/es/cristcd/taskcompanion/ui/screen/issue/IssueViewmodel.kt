@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalTime::class)
 
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.issue
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

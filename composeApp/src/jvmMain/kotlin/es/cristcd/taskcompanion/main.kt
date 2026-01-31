@@ -8,8 +8,7 @@ import es.cristcd.taskcompanion.persistence.PersistenceManager
 import es.cristcd.taskcompanion.ui.common.SnackbarController
 import io.github.oshai.kotlinlogging.KotlinLogging
 
-val log = KotlinLogging.logger {}
-
+private val log = KotlinLogging.logger {}
 
 fun main() {
     Thread.setDefaultUncaughtExceptionHandler { _, e ->

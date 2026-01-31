@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.project
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.Res

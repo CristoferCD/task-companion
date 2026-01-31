@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.projectlist
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Card
@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import es.cristcd.taskcompanion.ui.Screen
 
 @Composable
 fun ProjectList(navController: NavHostController, viewmodel: ProjectListViewmodel = viewModel { ProjectListViewmodel() }) {

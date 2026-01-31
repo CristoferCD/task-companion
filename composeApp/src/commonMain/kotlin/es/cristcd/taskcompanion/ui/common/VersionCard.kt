@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.common
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.ElevatedCard
@@ -8,9 +8,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
 import es.cristcd.taskcompanion.redmine.model.Version
+import es.cristcd.taskcompanion.ui.screen.version.PieIssuesByStatus
 
 @Composable
 fun VersionCard(version: Version, analytics: IssueListAnalytics, onClick: () -> Unit) {

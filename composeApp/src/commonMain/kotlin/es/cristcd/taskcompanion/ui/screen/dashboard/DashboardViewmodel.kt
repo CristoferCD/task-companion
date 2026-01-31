@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,10 +12,11 @@ import es.cristcd.taskcompanion.redmine.model.Issue
 import es.cristcd.taskcompanion.redmine.model.Query
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
+import es.cristcd.taskcompanion.ui.screen.version.VersionResult
+import es.cristcd.taskcompanion.ui.screen.version.calculateAnalytics
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -204,4 +205,12 @@ sealed interface SidebarNavigation {
     data object None: SidebarNavigation
     data object Tracker : SidebarNavigation
     data object Projects: SidebarNavigation
+
+    fun toggle(target: SidebarNavigation): SidebarNavigation {
+        return if (this == target) {
+            SidebarNavigation.None
+        } else {
+            target
+        }
+    }
 }

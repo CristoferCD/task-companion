@@ -11,6 +11,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -20,10 +21,16 @@ import androidx.navigation.toRoute
 import androidx.savedstate.SavedState
 import androidx.savedstate.read
 import androidx.savedstate.write
+import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.SnackbarControllerProvider
+import es.cristcd.taskcompanion.ui.screen.dashboard.Dashboard
+import es.cristcd.taskcompanion.ui.screen.issue.IssueScreen
+import es.cristcd.taskcompanion.ui.screen.project.ProjectScreen
+import es.cristcd.taskcompanion.ui.screen.settings.Settings
+import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
+import es.cristcd.taskcompanion.ui.screen.version.VersionScreen
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.reflect.typeOf
 
 @OptIn(ExperimentalFoundationApi::class)

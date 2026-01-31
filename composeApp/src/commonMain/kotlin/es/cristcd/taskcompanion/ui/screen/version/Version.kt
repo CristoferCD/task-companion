@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.version
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -24,12 +24,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.redmine.model.Issue
-import es.cristcd.taskcompanion.redmine.model.IssueAnalyticsCount
 import es.cristcd.taskcompanion.redmine.model.IssueList
 import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
 import es.cristcd.taskcompanion.redmine.model.SimpleCustomField
 import es.cristcd.taskcompanion.tracker.SettingsCache
+import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
+import es.cristcd.taskcompanion.ui.common.PriorityIcon
+import es.cristcd.taskcompanion.ui.common.StatusBadge
+import es.cristcd.taskcompanion.util.toDefaultFormatString
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.RowChart
 import ir.ehsannarmani.compose_charts.models.AnimationMode
@@ -42,14 +45,11 @@ import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.skia.Surface
 import task_companion.composeapp.generated.resources.Res
 import task_companion.composeapp.generated.resources.arrow_back_24px
 import task_companion.composeapp.generated.resources.more_vert_24px
 import task_companion.composeapp.generated.resources.visibility_24px
 import task_companion.composeapp.generated.resources.visibility_off_24px
-import java.awt.Desktop
-import java.net.URI
 import kotlin.time.ExperimentalTime
 
 
@@ -312,8 +312,7 @@ private fun IssueTable(issues: IssueList, onClick: (Issue) -> Unit) {
                     }
                     Box(Modifier.maxWidthForColumn(columnWidths, 4)) {
                         Text(
-                            issue.updatedOn?.toLocalDateTime(TimeZone.currentSystemDefault())
-                                ?.format(LocalDateTime.Format { year(); char('-'); monthNumber(); char('-'); day(); char(' '); hour(); char(':'); minute() }) ?: "",
+                            issue.updatedOn?.toDefaultFormatString() ?: "",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }

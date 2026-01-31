@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalTime::class)
 
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.tracker
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background

@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.dashboard
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
@@ -18,6 +18,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.persistence.model.DashboardItem
+import es.cristcd.taskcompanion.ui.Screen
+import es.cristcd.taskcompanion.ui.common.TaskCard
+import es.cristcd.taskcompanion.ui.common.VersionCard
+import es.cristcd.taskcompanion.ui.screen.projectlist.ProjectList
+import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
@@ -118,85 +123,11 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                                 viewmodel.loadRedmineQueries()
                             }
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            var groupName by remember { mutableStateOf("") }
-                            var itemBoxExpanded by remember { mutableStateOf(false) }
-                            var selectedGroupItemName by remember { mutableStateOf("") }
-                            var groupItem by remember { mutableStateOf<DashboardItem?>(null)}
-                            OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("Group Name") })
-                            ExposedDropdownMenuBox(expanded = itemBoxExpanded, onExpandedChange = { itemBoxExpanded = !itemBoxExpanded }, modifier = Modifier.widthIn(max = 500.dp)) {
-                                OutlinedTextField(
-                                    label = { Text("Item") },
-                                    value = selectedGroupItemName,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    singleLine = true,
-                                    trailingIcon = {
-                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = itemBoxExpanded)
-                                    },
-                                    colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                                )
-
-                                ExposedDropdownMenu(
-                                    expanded = itemBoxExpanded,
-                                    onDismissRequest = { itemBoxExpanded = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Asignados a mi") },
-                                        onClick = {
-                                            selectedGroupItemName = "Asignados a mi"
-                                            groupItem = DashboardItem.AssignedToMe
-                                            itemBoxExpanded = false
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Monitorizados") },
-                                        onClick = {
-                                            selectedGroupItemName = "Monitorizados"
-                                            groupItem = DashboardItem.Monitored
-                                            itemBoxExpanded = false
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Versiones seguidas") },
-                                        onClick = {
-                                            selectedGroupItemName = "Versiones seguidas"
-                                            groupItem = DashboardItem.FollowedVersions
-                                            itemBoxExpanded = false
-                                        }
-                                    )
-                                    queries.value.forEach { (project, queryList) ->
-                                        HorizontalDivider()
-                                        Text(
-                                            text = project,
-                                            modifier = Modifier.padding(8.dp),
-                                            style = MaterialTheme.typography.labelMedium
-                                        )
-                                        HorizontalDivider()
-                                        queryList.forEach { query ->
-                                            DropdownMenuItem(
-                                                text = { Text("${query.name} (${query.id})") },
-                                                onClick = {
-                                                    selectedGroupItemName = query.name
-                                                    groupItem = DashboardItem.CustomQuery(query.id, query.projectId)
-                                                    itemBoxExpanded = false
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-
-                            }
-                            IconButton(onClick = { showNewGroupForm = false; viewmodel.createGroup(groupName, groupItem!!) }) {
-                                Icon(painterResource(Res.drawable.add_24px), "Add")
-                            }
-                            IconButton(onClick = { showNewGroupForm = false }) {
-                                Icon(painterResource(Res.drawable.cancel_24px), contentDescription = null)
-                            }
-                        }
+                        GroupForm(
+                            queries.value,
+                            onAdd = { name, item -> showNewGroupForm = false; viewmodel.createGroup(name, item) },
+                            onCancel = { showNewGroupForm = false }
+                        )
                     }
                 }
             }
@@ -222,10 +153,10 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
 
             Column(modifier = Modifier.fillMaxHeight().width(IntrinsicSize.Min), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 val selectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                IconButton(onClick = { sidebarNavigation = if (sidebarNavigation == SidebarNavigation.Tracker) SidebarNavigation.None else SidebarNavigation.Tracker }, colors = if (sidebarNavigation == SidebarNavigation.Tracker) IconButtonDefaults.iconButtonColors(containerColor = selectedColor) else IconButtonDefaults.iconButtonColors()) {
+                IconButton(onClick = { sidebarNavigation = sidebarNavigation.toggle(SidebarNavigation.Tracker) }, colors = if (sidebarNavigation == SidebarNavigation.Tracker) IconButtonDefaults.iconButtonColors(containerColor = selectedColor) else IconButtonDefaults.iconButtonColors()) {
                     Icon(painterResource(Res.drawable.assignment_24px), contentDescription = null)
                 }
-                IconButton(onClick = { sidebarNavigation = if (sidebarNavigation == SidebarNavigation.Projects) SidebarNavigation.None else SidebarNavigation.Projects }, colors = if (sidebarNavigation == SidebarNavigation.Projects) IconButtonDefaults.iconButtonColors(containerColor = selectedColor) else IconButtonDefaults.iconButtonColors()) {
+                IconButton(onClick = { sidebarNavigation = sidebarNavigation.toggle(SidebarNavigation.Projects) }, colors = if (sidebarNavigation == SidebarNavigation.Projects) IconButtonDefaults.iconButtonColors(containerColor = selectedColor) else IconButtonDefaults.iconButtonColors()) {
                     Icon(painterResource(Res.drawable.team_dashboard_24px), contentDescription = null)
                 }
                 Spacer(Modifier.weight(1f))
@@ -237,6 +168,90 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                 }
 
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GroupForm(queries: List<RedmineQueriesByProject>, onAdd: (name: String, item: DashboardItem) -> Unit, onCancel: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        var groupName by remember { mutableStateOf("") }
+        var itemBoxExpanded by remember { mutableStateOf(false) }
+        var selectedGroupItemName by remember { mutableStateOf("") }
+        var groupItem by remember { mutableStateOf<DashboardItem?>(null)}
+        OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("Group Name") })
+        ExposedDropdownMenuBox(expanded = itemBoxExpanded, onExpandedChange = { itemBoxExpanded = !itemBoxExpanded }, modifier = Modifier.widthIn(max = 500.dp)) {
+            OutlinedTextField(
+                label = { Text("Item") },
+                value = selectedGroupItemName,
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = itemBoxExpanded)
+                },
+                colors = ExposedDropdownMenuDefaults.textFieldColors(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+            )
+
+            ExposedDropdownMenu(
+                expanded = itemBoxExpanded,
+                onDismissRequest = { itemBoxExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Asignados a mi") },
+                    onClick = {
+                        selectedGroupItemName = "Asignados a mi"
+                        groupItem = DashboardItem.AssignedToMe
+                        itemBoxExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Monitorizados") },
+                    onClick = {
+                        selectedGroupItemName = "Monitorizados"
+                        groupItem = DashboardItem.Monitored
+                        itemBoxExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Versiones seguidas") },
+                    onClick = {
+                        selectedGroupItemName = "Versiones seguidas"
+                        groupItem = DashboardItem.FollowedVersions
+                        itemBoxExpanded = false
+                    }
+                )
+                queries.forEach { (project, queryList) ->
+                    HorizontalDivider()
+                    Text(
+                        text = project,
+                        modifier = Modifier.padding(8.dp),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    HorizontalDivider()
+                    queryList.forEach { query ->
+                        DropdownMenuItem(
+                            text = { Text("${query.name} (${query.id})") },
+                            onClick = {
+                                selectedGroupItemName = query.name
+                                groupItem = DashboardItem.CustomQuery(query.id, query.projectId)
+                                itemBoxExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+        }
+        IconButton(onClick = { onAdd(groupName, groupItem!!) }) {
+            Icon(painterResource(Res.drawable.add_24px), "Add")
+        }
+        IconButton(onClick = onCancel) {
+            Icon(painterResource(Res.drawable.cancel_24px), contentDescription = "Cancel")
         }
     }
 }

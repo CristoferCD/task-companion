@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,6 +15,7 @@ import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.StatusDto
 import es.cristcd.taskcompanion.tracker.form.CategoryForm
 import es.cristcd.taskcompanion.tracker.form.StatusForm
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -24,6 +25,8 @@ import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 class SettingsViewmodel : ViewModel() {
+    private val log = KotlinLogging.logger {}
+
     private val _redmineUser = MutableStateFlow<RedmineUserResult>(RedmineUserResult.Loading)
     val redmineUser = _redmineUser.asStateFlow()
 

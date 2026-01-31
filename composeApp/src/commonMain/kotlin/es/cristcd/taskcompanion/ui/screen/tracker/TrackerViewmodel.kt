@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.tracker
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.settings
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -23,7 +24,6 @@ import es.cristcd.taskcompanion.tracker.dto.StatusDto
 import es.cristcd.taskcompanion.tracker.form.CategoryForm
 import es.cristcd.taskcompanion.tracker.form.StatusForm
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import task_companion.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3Api::class)

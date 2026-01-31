@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui.screen.issue
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,12 +21,12 @@ import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.core.CachedResult
 import es.cristcd.taskcompanion.redmine.model.*
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
+import es.cristcd.taskcompanion.ui.common.PriorityIcon
+import es.cristcd.taskcompanion.ui.common.StatusBadge
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
-import java.awt.Desktop
-import java.net.URI
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 

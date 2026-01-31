@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion
+package es.cristcd.taskcompanion.ui
 
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
