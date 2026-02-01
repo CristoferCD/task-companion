@@ -167,7 +167,7 @@ fun Version(version: VersionResult.Ok, navController: NavHostController, onFollo
                 }
             }
 
-            IssueTable(version.issueList, onClick = {issue -> navController.navigate(Screen.Issue(issue.id)) })
+            IssueTable(version.issueList, onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
         }
     }
 }
@@ -272,7 +272,7 @@ fun RowChartByCategory(analytics: IssueListAnalytics) {
 
 @OptIn(ExperimentalTime::class)
 @Composable
-private fun IssueTable(issues: IssueList, onClick: (Issue) -> Unit) {
+fun IssueTable(issues: IssueList, onClick: (Issue) -> Unit) {
     val columnWidths = remember { mutableStateMapOf<Int, Int>() }
     LazyColumn(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
         item {

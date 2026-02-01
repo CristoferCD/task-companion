@@ -3,6 +3,7 @@ package es.cristcd.taskcompanion.ui.screen.project
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.redmine.RedmineService
+import es.cristcd.taskcompanion.redmine.model.IssueList
 import es.cristcd.taskcompanion.redmine.model.Project
 import es.cristcd.taskcompanion.redmine.model.Version
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,12 +20,13 @@ class ProjectViewmodel: ViewModel() {
             _version.emit(ProjectResult.Loading)
             val project = RedmineService.getProject(projectId)
             val versionList = RedmineService.listProjectVersions(projectId)
-            _version.emit(ProjectResult.Ok(project, versionList))
+            val recentIssues = RedmineService.listIssuesByProject(projectId)
+            _version.emit(ProjectResult.Ok(project, versionList, recentIssues))
         }
     }
 }
 
 sealed interface ProjectResult {
     data object Loading : ProjectResult
-    data class Ok(val project: Project, val versions: List<Version>) : ProjectResult
+    data class Ok(val project: Project, val versions: List<Version>, val recentIssues: IssueList) : ProjectResult
 }

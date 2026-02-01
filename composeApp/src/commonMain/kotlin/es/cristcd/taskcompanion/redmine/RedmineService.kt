@@ -101,6 +101,14 @@ object RedmineService {
         }.body()
     }
 
+    suspend fun listIssuesByProject(projectId: Long): IssueList {
+        return client!!.get("issues.json") {
+            parameter("project_id", projectId)
+            parameter("sort", "updated_on:desc")
+            parameter("limit", 50)
+        }.body()
+    }
+
     suspend fun listMonitoredIssues(): IssueList {
         return client!!.get("issues.json") {
             url {
