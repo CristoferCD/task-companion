@@ -50,7 +50,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                         onValueChange = { text = it },
                         placeholder = { Text("Search", color = MaterialTheme.colorScheme.onSurface) },
                         trailingIcon = {
-                            IconButton(onClick = { navController.navigate(Screen.Issue(text.toLong())) }) {
+                            IconButton(onClick = { text.toLongOrNull()?.let { navController.navigate(Screen.Issue(it)) } }) {
                                 Icon(painterResource(Res.drawable.visibility_24px), "")
                             }
                         },
