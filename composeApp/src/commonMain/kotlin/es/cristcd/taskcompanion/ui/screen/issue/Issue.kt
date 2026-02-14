@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.ExperimentalMaterialApi
@@ -68,7 +69,9 @@ fun Issue(
         topBar = {
             MediumTopAppBar(
                 title = {
-                    Text("#${issue.id} - ${issue.subject}", style = MaterialTheme.typography.titleLarge)
+                    SelectionContainer {
+                        Text("#${issue.id} - ${issue.subject}", style = MaterialTheme.typography.titleLarge)
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -166,7 +169,9 @@ fun Issue(
                 }
             }
 
-            Text(issue.description.trim())
+            SelectionContainer {
+                Text(issue.description.trim())
+            }
             HorizontalDivider()
             Text("Comentarios: ", style = MaterialTheme.typography.titleSmall)
             issue.journals.forEach { Journal(it) }
@@ -222,7 +227,9 @@ fun Journal(journal: Journal) {
                 Text(journal.createdOn?.toLocalDateTime(TimeZone.currentSystemDefault()).toString(), style = MaterialTheme.typography.bodySmall)
             }
             if (!journal.notes.isNullOrBlank()) {
-                Text(journal.notes.trim(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp))
+                SelectionContainer {
+                    Text(journal.notes.trim(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp))
+                }
             }
             if (journal.details.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
