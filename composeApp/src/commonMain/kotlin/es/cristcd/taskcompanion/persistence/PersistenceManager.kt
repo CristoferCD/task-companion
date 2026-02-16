@@ -4,8 +4,11 @@ import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.DashboardIssueItem
 import es.cristcd.taskcompanion.persistence.model.DashboardLayout
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
+import es.cristcd.taskcompanion.persistence.model.Issue
+import es.cristcd.taskcompanion.persistence.model.IssueTag
 import es.cristcd.taskcompanion.persistence.model.RedmineIssue
 import es.cristcd.taskcompanion.persistence.model.Status
+import es.cristcd.taskcompanion.persistence.model.Tag
 import es.cristcd.taskcompanion.persistence.model.Task
 import es.cristcd.taskcompanion.persistence.model.UserPreferences
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -26,8 +29,11 @@ object PersistenceManager {
                 DashboardIssueItem,
                 DashboardLayout,
                 FollowedRedmineVersion,
+                Issue,
+                IssueTag,
                 RedmineIssue,
                 Status,
+                Tag,
                 Task,
                 UserPreferences
             )

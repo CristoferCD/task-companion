@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,9 +20,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import es.cristcd.taskcompanion.redmine.dto.IssueListItemDto
+import es.cristcd.taskcompanion.issue.IssueService
+import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
+import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.redmine.model.IdString
 import es.cristcd.taskcompanion.tracker.SettingsCache
+import es.cristcd.taskcompanion.ui.screen.issue.Issue
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
 import kotlin.collections.get
@@ -29,7 +33,7 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalTime::class)
 @Composable
-fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, AnimationVector1D>, onClick: () -> Unit = {}, onStart: () -> Unit) {
+fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, AnimationVector1D>, onClick: () -> Unit = {}, onStart: () -> Unit, onUpdateTags: (tags: List<TagDto>) -> Unit) {
     ElevatedCard(
         onClick = onClick,
         shape = MaterialTheme.shapes.small
@@ -53,6 +57,7 @@ fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, A
                         Text("Actualizado:", style = MaterialTheme.typography.bodySmall)
                         issue.updatedOn?.let { RelativeTimestamp(it, style = MaterialTheme.typography.bodySmall) }
                     }
+                    IssueTags(issue.tags)
                 }
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     PriorityIcon(issue.priority.name)
@@ -63,8 +68,24 @@ fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, A
                     }
                 }
             }
+
+            var tagsDialog by remember { mutableStateOf(false) }
             if (optionsOverlay) {
-                IssueOptionsOverlay(onDismiss = { optionsOverlay = false }, onStart = onStart)
+                IssueOptionsOverlay(onDismiss = { optionsOverlay = false }, onStart = onStart, onEditTags = { tagsDialog = true })
+            }
+            if (tagsDialog) {
+                var availableTags by remember { mutableStateOf(emptyList<TagDto>()) } //FIXME
+                LaunchedEffect(true) {
+                    availableTags = IssueService.listTags()
+                }
+                var selectedTags by remember { mutableStateOf(issue.tags.toList())}
+                IssueTagsDialog(
+                    selectedTags,
+                    availableTags,
+                    onAssign = { name -> availableTags.find { it.name == name }?.let { selectedTags = selectedTags + it } },
+                    onRemove = { name -> availableTags.find { it.name == name }?.let { selectedTags = selectedTags.filter{ st -> it != st} } },
+                    onConfirm = { onUpdateTags(selectedTags); tagsDialog = false },
+                    onDismiss = { tagsDialog = false })
             }
         }
 
@@ -84,11 +105,31 @@ private fun TaskParent(issue: IssueListItemDto) {
 }
 
 @Composable
-private fun IssueOptionsOverlay(onDismiss: () -> Unit, onStart: () -> Unit) {
+private fun IssueTags(tags: List<TagDto>) {
+    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+        tags.forEach { tag ->
+            Row(verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clip(MaterialTheme.shapes.small)
+                    .border(1.dp, Color.LightGray)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(vertical = 2.dp, horizontal = 8.dp)
+            ) {
+                Box(Modifier.padding(end = 8.dp).size(8.dp).clip(CircleShape).background(Color(tag.color)))
+                Text(tag.name, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IssueOptionsOverlay(onDismiss: () -> Unit, onStart: () -> Unit, onEditTags: () -> Unit) {
     Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceAround) {
             IconButton(onClick = { onStart(); onDismiss()}) {
                 Icon(painterResource(Res.drawable.play_arrow_24px), null)
+            }
+            IconButton(onClick = { onEditTags(); onDismiss()}) {
+                Icon(painterResource(Res.drawable.bookmarks_24px), null)
             }
         }
 

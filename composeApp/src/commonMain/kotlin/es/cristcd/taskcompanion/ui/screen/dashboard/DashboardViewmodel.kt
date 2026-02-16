@@ -2,13 +2,15 @@ package es.cristcd.taskcompanion.ui.screen.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import es.cristcd.taskcompanion.issue.IssueService
 import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.DashboardItem
 import es.cristcd.taskcompanion.persistence.model.DashboardLayout
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.redmine.RedmineService
-import es.cristcd.taskcompanion.redmine.dto.IssueListItemDto
-import es.cristcd.taskcompanion.redmine.model.Issue
+import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
+import es.cristcd.taskcompanion.issue.dto.TagDto
+import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.redmine.model.Query
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
@@ -83,7 +85,7 @@ class DashboardViewmodel : ViewModel() {
     private suspend fun loadItems(dashboardItem: DashboardItem): DashboardGroupContent {
         return when(dashboardItem) {
             DashboardItem.AssignedToMe -> DashboardGroupContent.IssueList(RedmineService.listIssuesAssignedToMe().issues.mapToDto())
-            is DashboardItem.CustomQuery -> DashboardGroupContent.IssueList(RedmineService.listIssuesByQuery(dashboardItem.queryId, dashboardItem.projectId).issues.mapToDto())
+            is DashboardItem.CustomQuery -> DashboardGroupContent.IssueList(IssueService.listByQuery(dashboardItem.queryId, dashboardItem.projectId))
             DashboardItem.Monitored -> DashboardGroupContent.IssueList(RedmineService.listMonitoredIssues().issues.mapToDto())
             DashboardItem.FollowedVersions -> DashboardGroupContent.VersionList(listFollowedVersions())
         }
@@ -160,7 +162,7 @@ class DashboardViewmodel : ViewModel() {
         }
     }
 
-    private fun List<Issue>.mapToDto(currentIssues: List<IssueListItemDto> = emptyList()): List<IssueListItemDto> {
+    private fun List<RedmineIssue>.mapToDto(currentIssues: List<IssueListItemDto> = emptyList()): List<IssueListItemDto> {
         return map {
             IssueListItemDto(
                 id = it.id,
@@ -189,6 +191,12 @@ class DashboardViewmodel : ViewModel() {
             }
 
             TrackerService.start(TaskForm(categoryId.value, issue.id.toString(), issue.subject))
+        }
+    }
+
+    fun updateIssueTags(issue: IssueListItemDto, tags: List<TagDto>) {
+        viewModelScope.launch {
+            IssueService.updateTags(issue.id, tags)
         }
     }
 }

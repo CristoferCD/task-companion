@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.IdString
-import es.cristcd.taskcompanion.redmine.model.Issue
+import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.redmine.model.IssueAnalyticsCount
 import es.cristcd.taskcompanion.redmine.model.IssueList
 import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
@@ -77,7 +77,7 @@ fun calculateAnalytics(issueList: IssueList): IssueListAnalytics {
     )
 }
 
-private fun List<Issue>.getAnalyticsBy(key: (Issue) -> IdString?) =
+private fun List<RedmineIssue>.getAnalyticsBy(key: (RedmineIssue) -> IdString?) =
     groupingBy(key).aggregate { _, accumulator: IssueAnalyticsCount?, element, _ ->
         val sp = element.storyPoints()
         accumulator?.copy(count = accumulator.count + 1, storyPoints = accumulator.storyPoints + sp)

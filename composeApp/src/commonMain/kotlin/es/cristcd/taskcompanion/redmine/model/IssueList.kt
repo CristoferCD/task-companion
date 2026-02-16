@@ -1,19 +1,16 @@
 package es.cristcd.taskcompanion.redmine.model
 
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
-import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @Serializable
 data class IssueList(
-    val issues: List<Issue>
+    val issues: List<RedmineIssue>
 )
 
 data class IssueListAnalytics(
@@ -27,7 +24,7 @@ data class IssueListAnalytics(
 data class IssueAnalyticsCount(val id: IdString?, val count: Int, val storyPoints: Long)
 
 @Serializable
-data class Issue @OptIn(ExperimentalTime::class) constructor(
+data class RedmineIssue @OptIn(ExperimentalTime::class) constructor(
     val id: Long,
     val project: IdString,
     val tracker: IdString,
@@ -51,7 +48,7 @@ data class Issue @OptIn(ExperimentalTime::class) constructor(
 )
 
 //Move to dto
-fun Issue.storyPoints() = ((customFields.firstOrNull { it.name == "Puntos de historia" } as SimpleCustomField?)?.value?.toLongOrNull() ?: 0)
+fun RedmineIssue.storyPoints() = ((customFields.firstOrNull { it.name == "Puntos de historia" } as SimpleCustomField?)?.value?.toLongOrNull() ?: 0)
 
 @Serializable
 data class IdString(val id: Long?, val name: String?)

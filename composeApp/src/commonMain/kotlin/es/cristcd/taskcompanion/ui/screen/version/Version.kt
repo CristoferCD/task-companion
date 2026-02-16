@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import es.cristcd.taskcompanion.redmine.model.Issue
+import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.redmine.model.IssueList
 import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
 import es.cristcd.taskcompanion.redmine.model.SimpleCustomField
@@ -39,11 +39,6 @@ import ir.ehsannarmani.compose_charts.models.AnimationMode
 import ir.ehsannarmani.compose_charts.models.BarProperties
 import ir.ehsannarmani.compose_charts.models.Bars
 import ir.ehsannarmani.compose_charts.models.Pie
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.format.char
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.Res
 import task_companion.composeapp.generated.resources.arrow_back_24px
@@ -272,7 +267,7 @@ fun RowChartByCategory(analytics: IssueListAnalytics) {
 
 @OptIn(ExperimentalTime::class)
 @Composable
-fun IssueTable(issues: IssueList, onClick: (Issue) -> Unit) {
+fun IssueTable(issues: IssueList, onClick: (RedmineIssue) -> Unit) {
     val columnWidths = remember { mutableStateMapOf<Int, Int>() }
     LazyColumn(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
         item {

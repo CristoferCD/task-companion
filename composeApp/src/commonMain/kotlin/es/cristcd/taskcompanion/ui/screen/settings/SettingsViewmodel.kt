@@ -2,6 +2,9 @@ package es.cristcd.taskcompanion.ui.screen.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import es.cristcd.taskcompanion.issue.IssueService
+import es.cristcd.taskcompanion.issue.dto.TagDto
+import es.cristcd.taskcompanion.issue.form.NewTagForm
 import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.CategoryType
 import es.cristcd.taskcompanion.persistence.model.Status
@@ -13,10 +16,13 @@ import es.cristcd.taskcompanion.redmine.model.User
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.StatusDto
+import es.cristcd.taskcompanion.tracker.dto.TaskDto
 import es.cristcd.taskcompanion.tracker.form.CategoryForm
 import es.cristcd.taskcompanion.tracker.form.StatusForm
+import es.cristcd.taskcompanion.ui.screen.dashboard.DashboardGroup
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
@@ -41,6 +47,9 @@ class SettingsViewmodel : ViewModel() {
 
     private val _redmineStatuses = MutableStateFlow(emptyList<IssueStatus>())
     val redmineStatuses = _redmineStatuses.asStateFlow()
+
+    val tags: StateFlow<List<TagDto>>
+        field = MutableStateFlow(emptyList())
 
     fun loadRedmineInfo() {
         viewModelScope.launch {
@@ -121,6 +130,12 @@ class SettingsViewmodel : ViewModel() {
         }
     }
 
+    fun loadTags() {
+        viewModelScope.launch {
+            tags.emit(IssueService.listTags())
+        }
+    }
+
     fun saveCategory(category: CategoryForm) {
         viewModelScope.launch {
             transaction {
@@ -193,6 +208,20 @@ class SettingsViewmodel : ViewModel() {
                 }
             }
             loadStatuses()
+        }
+    }
+
+    fun createTag(form: NewTagForm) {
+        viewModelScope.launch {
+            IssueService.createTag(form)
+            tags.emit(IssueService.listTags())
+        }
+    }
+
+    fun deleteTag(tagId: Int) {
+        viewModelScope.launch {
+            IssueService.deleteTag(tagId)
+            tags.emit(IssueService.listTags())
         }
     }
 

@@ -1,4 +1,4 @@
-package es.cristcd.taskcompanion.redmine.dto
+package es.cristcd.taskcompanion.issue.dto
 
 import es.cristcd.taskcompanion.redmine.model.IdString
 import kotlin.time.ExperimentalTime
@@ -13,4 +13,11 @@ data class IssueListItemDto @OptIn(ExperimentalTime::class) constructor(
     val updatedOn: Instant?,
     val fixedVersion: IdString?,
     val recentlyChanged: Boolean = false,
+    val tags: List<TagDto> = emptyList(),
+)
+
+data class TagDto(
+    val id: Int,
+    val name: String,
+    val color: Long,
 )

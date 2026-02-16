@@ -15,6 +15,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import es.cristcd.taskcompanion.issue.dto.TagDto
+import es.cristcd.taskcompanion.issue.form.NewTagForm
 import es.cristcd.taskcompanion.persistence.model.CategoryType
 import es.cristcd.taskcompanion.redmine.model.IssueStatus
 import es.cristcd.taskcompanion.redmine.model.Project
@@ -35,6 +37,7 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
         viewmodel.loadProjects()
         viewmodel.loadStatuses()
         viewmodel.loadRedmineStatuses()
+        viewmodel.loadTags()
     }
     Scaffold(
         topBar = {
@@ -61,6 +64,9 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
             val statuses = viewmodel.statuses.collectAsState().value
             val redmineStatuses = viewmodel.redmineStatuses.collectAsState().value
             StatusesSettings(statuses, redmineStatuses, viewmodel::saveStatus, viewmodel::deleteStatus, viewmodel::importStatusFromRedmine)
+
+            val tags = viewmodel.tags.collectAsState().value
+            TagsSettings(tags, viewmodel::createTag, viewmodel::deleteTag)
         }
 
     }
@@ -381,6 +387,80 @@ fun StatusDialog(initialValue: StatusForm?, redmineStatuses: List<IssueStatus>, 
 
                 //TODO: validation
                 Button(onClick = { onConfirm(StatusForm(initialValue?.id, name, color!!, redmineId )) }, modifier = Modifier.align(Alignment.End)) {
+                    Text("Save")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (Int) -> Unit) {
+    var showDialog by remember { mutableStateOf(false) }
+    var editingTag by remember { mutableStateOf<NewTagForm?>(null) }
+
+    SettingsSection(
+        "Tags",
+        content = {
+            tags.forEachIndexed { idx, tag ->
+                ListItem(
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    headlineContent = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },
+                    leadingContent = {
+                        Box(Modifier.padding(end = 8.dp).size(18.dp).clip(CircleShape).background(Color(tag.color)))
+                    },
+                    trailingContent = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = { editingTag = NewTagForm(tag.id, tag.name, Color(tag.color).value.toLong()); showDialog = true }) {
+                                Icon(painterResource(Res.drawable.edit_24px), contentDescription = null)
+                            }
+                            IconButton(onClick = { onDelete(tag.id) }) {
+                                Icon(painterResource(Res.drawable.delete_24px), contentDescription = null)
+                            }
+                        }
+                    }
+                )
+                if (idx != (tags.size - 1)) {
+                    HorizontalDivider(Modifier.padding(0.dp))
+                }
+            }
+        },
+        actions = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(
+                    onClick = { editingTag = null; showDialog = true },
+                    shape = MaterialTheme.shapes.small,
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Text(text = "Add", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    )
+
+    if (showDialog) {
+        TagDialog(editingTag, onConfirm = { form -> onNewTag(form); showDialog = false}, onDismiss = { showDialog = false })
+    }
+
+}
+
+@Composable
+fun TagDialog(initialValue: NewTagForm?, onConfirm: (NewTagForm) -> Unit, onDismiss: () -> Unit) {
+    BasicAlertDialog(onDismissRequest = onDismiss, modifier = Modifier.width(1000.dp)) {
+        Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.padding(24.dp)) {
+                Text(text = "Status", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+
+                var name by remember { mutableStateOf(initialValue?.name ?:"") }
+
+                OutlinedTextField(label = { Text("Name") }, value = name, onValueChange = { name = it }, modifier = Modifier.fillMaxWidth())
+
+                var color by remember { mutableStateOf<Long?>(null) }
+                ColorSelector(initialValue?.color, { color = it })
+
+                //TODO: validation
+                Button(onClick = { onConfirm(NewTagForm(initialValue?.id, name, color!! )) }, modifier = Modifier.align(Alignment.End)) {
                     Text("Save")
                 }
             }

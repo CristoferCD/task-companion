@@ -94,7 +94,13 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                     when(val content = group.content) {
                         is DashboardGroupContent.IssueList -> {
                             dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list, "No ${group.title.lowercase()}") {
-                                TaskCard(it, alphaAnimation, onClick = { navController.navigate(Screen.Issue(it.id)) }, onStart = { viewmodel.startTask(it); sidebarNavigation = SidebarNavigation.Tracker })
+                                TaskCard(
+                                    issue = it,
+                                    newItemAlphaAnimation = alphaAnimation,
+                                    onClick = { navController.navigate(Screen.Issue(it.id)) },
+                                    onStart = { viewmodel.startTask(it); sidebarNavigation = SidebarNavigation.Tracker },
+                                    onUpdateTags = { tags -> viewmodel.updateIssueTags(it, tags); viewmodel.reloadGroup(group.id) },
+                                )
                             }
                         }
                         is DashboardGroupContent.VersionList -> {
