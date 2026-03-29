@@ -1,5 +1,6 @@
 package es.cristcd.taskcompanion.issue
 
+import androidx.compose.ui.graphics.Color
 import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
 import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.issue.form.NewTagForm
@@ -30,18 +31,33 @@ object IssueService {
         updateIssuesFromRedmine(redmineIssues)
 
         return redmineIssues.map {
+
+            val detectedTags = extractTagsFromTitle(it.subject)
+
             IssueListItemDto(
                 id = it.id,
                 project = it.project,
                 status = it.status,
                 priority = it.priority,
-                subject = it.subject,
+                subject = detectedTags.first,
                 updatedOn = it.updatedOn,
                 fixedVersion = it.fixedVersion,
                 recentlyChanged = false, //TODO
-                tags[it.id] ?: emptyList(),
+                (tags[it.id] ?: emptyList()) + detectedTags.second,
             )
         }
+    }
+
+    private fun extractTagsFromTitle(subject: String): Pair<String, List<TagDto>> {
+        val matchResult = Regex("(?<tags>\\[.*\\])*(?<subject>.*)").matchEntire(subject)
+        val cleanSubject = matchResult?.groups["subject"]?.value?.trim() ?: subject
+        val tags = matchResult?.groups["tags"]?.value
+        val tagList = Regex("\\[(?<tag>.*?)\\]").findAll(tags ?: "")
+            .mapNotNull { it.groups["tag"]?.value }
+            .map { TagDto(-1, it, null) }
+            .toList()
+
+        return cleanSubject to tagList
     }
 
     private fun updateIssuesFromRedmine(redmineIssues: List<RedmineIssue>) {

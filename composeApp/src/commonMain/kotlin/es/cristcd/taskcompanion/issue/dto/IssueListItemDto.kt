@@ -19,5 +19,5 @@ data class IssueListItemDto @OptIn(ExperimentalTime::class) constructor(
 data class TagDto(
     val id: Int,
     val name: String,
-    val color: Long,
+    val color: Long? = null,
 )

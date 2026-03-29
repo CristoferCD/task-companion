@@ -407,11 +407,13 @@ fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     headlineContent = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },
                     leadingContent = {
-                        Box(Modifier.padding(end = 8.dp).size(18.dp).clip(CircleShape).background(Color(tag.color)))
+                        if (tag.color != null) {
+                            Box(Modifier.padding(end = 8.dp).size(18.dp).clip(CircleShape).background(Color(tag.color)))
+                        }
                     },
                     trailingContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { editingTag = NewTagForm(tag.id, tag.name, Color(tag.color).value.toLong()); showDialog = true }) {
+                            IconButton(onClick = { editingTag = NewTagForm(tag.id, tag.name, tag.color?.let { Color(it).value.toLong() } ?: 0); showDialog = true }) {
                                 Icon(painterResource(Res.drawable.edit_24px), contentDescription = null)
                             }
                             IconButton(onClick = { onDelete(tag.id) }) {

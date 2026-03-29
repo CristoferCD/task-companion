@@ -18,6 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import es.cristcd.taskcompanion.issue.IssueService
@@ -119,10 +122,23 @@ private fun IssueTags(tags: List<TagDto>, modifier: Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.extraSmall)
-                    .border(1.dp, Color.LightGray, MaterialTheme.shapes.extraSmall)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .drawBehind {
+                        if (tag.color != null) {
+                            drawRect(
+                                color = Color(tag.color),
+                                topLeft = Offset(0f, 0f),
+                                size = Size(3.dp.toPx(), size.height)
+                            )
+                            drawRect(
+                                color = Color(tag.color),
+                                topLeft = Offset(size.width - 3.dp.toPx(), 0f),
+                                size = Size(3.dp.toPx(), size.height)
+                            )
+                        }
+                    }
                     .padding(vertical = 2.dp, horizontal = 8.dp)
             ) {
-                Box(Modifier.padding(end = 8.dp).size(8.dp).clip(CircleShape).background(Color(tag.color)))
                 Text(tag.name, style = MaterialTheme.typography.labelSmall)
             }
         }

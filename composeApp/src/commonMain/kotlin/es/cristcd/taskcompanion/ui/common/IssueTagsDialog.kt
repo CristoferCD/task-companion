@@ -30,7 +30,9 @@ fun IssueTagsDialog(selectedTags: List<TagDto>, availableTags: List<TagDto>, onA
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         headlineContent = { Text(tag.name) },
                         leadingContent = {
-                            Box(Modifier.padding(end = 8.dp).size(18.dp).clip(CircleShape).background(Color(tag.color)))
+                            if (tag.color != null) {
+                                Box(Modifier.padding(end = 8.dp).size(18.dp).clip(CircleShape).background(Color(tag.color)))
+                            }
                         },
                         trailingContent = {
                             IconButton(onClick = { onRemove(tag.name) } ) {
@@ -46,7 +48,9 @@ fun IssueTagsDialog(selectedTags: List<TagDto>, availableTags: List<TagDto>, onA
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         headlineContent = { Text(tag.name) },
                         leadingContent = {
-                            Box(Modifier.padding(end = 8.dp).size(18.dp).clip(CircleShape).background(Color(tag.color)))
+                            if (tag.color != null) {
+                                Box(Modifier.padding(end = 8.dp).size(18.dp).clip(CircleShape).background(Color(tag.color)))
+                            }
                         },
                         trailingContent = {
                             IconButton(onClick = { onAssign(tag.name) } ) {
