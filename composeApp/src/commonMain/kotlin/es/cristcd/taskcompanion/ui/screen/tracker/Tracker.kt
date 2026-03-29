@@ -196,7 +196,7 @@ fun BadgeDuration(task: TaskDto, modifier: Modifier = Modifier) {
 
                     val finishedAt = task.end.toLocalDateTime(TimeZone.currentSystemDefault()).format(formatter)
                     Text(text = startedAt)
-                    Icon(painterResource(Res.drawable.arrow_right_alt_24px), "today", Modifier.width(18.dp))
+                    Icon(painterResource(Res.drawable.arrow_right_alt_24px), "today", Modifier.size(16.dp), tint = Color.Gray)
                     Text(text = finishedAt)
 
                 }

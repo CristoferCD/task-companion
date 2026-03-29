@@ -25,11 +25,11 @@ import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
 import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.redmine.model.IdString
 import es.cristcd.taskcompanion.tracker.SettingsCache
-import es.cristcd.taskcompanion.ui.screen.issue.Issue
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
 import kotlin.collections.get
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalTime::class)
 @Composable
@@ -42,25 +42,20 @@ fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, A
         Box(modifier = Modifier.background(statusColor.copy(alpha = 0.08f)).priorityBorder(issue.priority.name).padding(4.dp).height(IntrinsicSize.Min)) {
             var optionsOverlay by remember { mutableStateOf(false) }
             Row(modifier = Modifier.alpha(if (optionsOverlay) 0.0f else 1.0f)) {
-                Column(modifier = Modifier.weight(1f).padding(horizontal = 6.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(modifier = Modifier.weight(1f).padding(horizontal = 6.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        StatusBadge(issue.status)
-                        TaskParent(issue)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                            StatusBadge(issue.status)
+                            TaskParent(issue)
+                        }
+                        PriorityIcon(issue.priority.name)
                     }
                     Text(text = issue.subject, style = MaterialTheme.typography.titleSmall)
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        if (issue.recentlyChanged) {
-                            Box(modifier = Modifier.clip(CircleShape).background(Color.Red.copy(alpha = newItemAlphaAnimation.value)).size(20.dp), contentAlignment = Alignment.Center) {
-                                Icon(painterResource(Res.drawable.notification_important_24px), null, tint = Color.Gray, modifier = Modifier.size(20.dp))
-                            }
-                        }
-                        Text("Actualizado:", style = MaterialTheme.typography.bodySmall)
-                        issue.updatedOn?.let { RelativeTimestamp(it, style = MaterialTheme.typography.bodySmall) }
+                    Box(Modifier.fillMaxWidth()) {
+                        IssueTags(issue.tags, modifier = Modifier.align(Alignment.CenterStart))
+                        TaskUpdatedAt(issue.updatedOn, issue.recentlyChanged, newItemAlphaAnimation, modifier = Modifier.align(Alignment.CenterEnd))
+
                     }
-                    IssueTags(issue.tags)
-                }
-                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    PriorityIcon(issue.priority.name)
                 }
                 Box(modifier = Modifier.fillMaxHeight().width(16.dp), contentAlignment = Alignment.Center) {
                     IconButton(onClick = { optionsOverlay = true }) {
@@ -93,6 +88,19 @@ fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, A
 }
 
 @Composable
+fun TaskUpdatedAt(updatedOn: Instant?, recentlyChanged: Boolean, newItemAlphaAnimation: Animatable<Float, AnimationVector1D>, modifier: Modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = modifier) {
+        if (recentlyChanged) {
+            Box(modifier = Modifier.clip(CircleShape).background(Color.Red.copy(alpha = newItemAlphaAnimation.value)).size(20.dp), contentAlignment = Alignment.Center) {
+                Icon(painterResource(Res.drawable.notification_important_24px), null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+            }
+        }
+        Icon(painterResource(Res.drawable.update_24px), "Updated at", tint = Color.DarkGray, modifier = Modifier.size(16.dp))
+        updatedOn?.let { RelativeTimestamp(it, style = MaterialTheme.typography.bodySmall) }
+    }
+}
+
+@Composable
 private fun TaskParent(issue: IssueListItemDto) {
     if (issue.fixedVersion?.name != null) {
         Text(text = issue.fixedVersion.name, style = MaterialTheme.typography.labelSmall)
@@ -105,13 +113,13 @@ private fun TaskParent(issue: IssueListItemDto) {
 }
 
 @Composable
-private fun IssueTags(tags: List<TagDto>) {
-    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun IssueTags(tags: List<TagDto>, modifier: Modifier) {
+    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         tags.forEach { tag ->
             Row(verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clip(MaterialTheme.shapes.small)
-                    .border(1.dp, Color.LightGray)
-                    .background(MaterialTheme.colorScheme.surface)
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.extraSmall)
+                    .border(1.dp, Color.LightGray, MaterialTheme.shapes.extraSmall)
                     .padding(vertical = 2.dp, horizontal = 8.dp)
             ) {
                 Box(Modifier.padding(end = 8.dp).size(8.dp).clip(CircleShape).background(Color(tag.color)))
@@ -141,10 +149,11 @@ private fun IssueOptionsOverlay(onDismiss: () -> Unit, onStart: () -> Unit, onEd
     }
 }
 
+@Composable
 private fun Modifier.priorityBorder(priority: String?): Modifier {
     val color = priorityColor(priority)?.copy(alpha = .8f)
     return if (color != null) {
-        border(1.dp, color)
+        border(1.dp, color, MaterialTheme.shapes.small)
     } else this
 }
 
