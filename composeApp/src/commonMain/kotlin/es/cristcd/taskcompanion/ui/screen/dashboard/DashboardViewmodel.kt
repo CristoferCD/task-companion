@@ -11,27 +11,18 @@ import es.cristcd.taskcompanion.persistence.model.DashboardLayout
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.Query
-import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import es.cristcd.taskcompanion.ui.screen.version.VersionResult
 import es.cristcd.taskcompanion.ui.screen.version.calculateAnalytics
-import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 class DashboardViewmodel : ViewModel() {
