@@ -15,6 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.persistence.model.DashboardItem
@@ -23,22 +27,34 @@ import es.cristcd.taskcompanion.ui.common.TaskCard
 import es.cristcd.taskcompanion.ui.common.VersionCard
 import es.cristcd.taskcompanion.ui.screen.projectlist.ProjectList
 import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class, ExperimentalMaterialApi::class)
 @Composable
 fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = viewModel { DashboardViewmodel() }) {
-    LaunchedEffect(true) {
-        viewmodel.load()
-    }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (isActive) {
+                viewmodel.load()
+                delay(5.minutes)
+            }
+        }
+    }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        val items = viewmodel.layoutItems.collectAsState()
+        val items = viewmodel.layoutItems.collectAsStateWithLifecycle()
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             var text by remember { mutableStateOf("") }

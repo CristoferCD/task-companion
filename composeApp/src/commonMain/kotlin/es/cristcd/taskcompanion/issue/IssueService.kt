@@ -1,6 +1,5 @@
 package es.cristcd.taskcompanion.issue
 
-import androidx.compose.ui.graphics.Color
 import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
 import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.issue.form.NewTagForm
@@ -13,18 +12,27 @@ import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.core.innerJoin
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.upsert
 
 object IssueService {
 
+    suspend fun listAssignedToMe(): List<IssueListItemDto> {
+        val redmineIssues = RedmineService.listIssuesAssignedToMe().issues
+        return loadFromRedmineInfo(redmineIssues)
+    }
+
+    suspend fun listMonitored(): List<IssueListItemDto> {
+        val redmineIssues = RedmineService.listMonitoredIssues().issues
+        return loadFromRedmineInfo(redmineIssues)
+    }
+
     suspend fun listByQuery(queryId: Long, projectId: Long?): List<IssueListItemDto> {
         val redmineIssues = RedmineService.listIssuesByQuery(queryId, projectId).issues
+        return loadFromRedmineInfo(redmineIssues)
+    }
+
+    private fun loadFromRedmineInfo(redmineIssues: List<RedmineIssue>): List<IssueListItemDto> {
         val redmineIds = redmineIssues.map { it.id }
         val tags = listTagsByIssue(redmineIds)
 
@@ -42,7 +50,7 @@ object IssueService {
                 subject = detectedTags.first,
                 updatedOn = it.updatedOn,
                 fixedVersion = it.fixedVersion,
-                recentlyChanged = false, //TODO
+                recentlyChanged = false, //TODO recentlyChanged = currentIssues.find { current -> current.id == it.id }?.updatedOn?.let { oldUpdate -> oldUpdate != it.updatedOn } ?: false
                 (tags[it.id] ?: emptyList()) + detectedTags.second,
             )
         }

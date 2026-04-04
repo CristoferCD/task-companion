@@ -17,8 +17,11 @@ import es.cristcd.taskcompanion.tracker.form.TaskForm
 import es.cristcd.taskcompanion.ui.screen.version.VersionResult
 import es.cristcd.taskcompanion.ui.screen.version.calculateAnalytics
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
@@ -26,14 +29,12 @@ import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 class DashboardViewmodel : ViewModel() {
-    private val log = KotlinLogging.logger {}
-    private var lastUpdated: Instant? = null
-
     val layoutItems: StateFlow<List<DashboardGroup>>
         field = MutableStateFlow(emptyList())
 
@@ -41,10 +42,6 @@ class DashboardViewmodel : ViewModel() {
         field = MutableStateFlow(emptyList())
 
     fun load() {
-        if (lastUpdated != null && (Clock.System.now() - lastUpdated!!) < 10.minutes) return
-        lastUpdated = Clock.System.now()
-        println("${Clock.System.now()} reloaded dashboard")
-
         viewModelScope.launch {
             loadLayout()
         }
@@ -82,9 +79,9 @@ class DashboardViewmodel : ViewModel() {
 
     private suspend fun loadItems(dashboardItem: DashboardItem): DashboardGroupContent {
         return when(dashboardItem) {
-            DashboardItem.AssignedToMe -> DashboardGroupContent.IssueList(RedmineService.listIssuesAssignedToMe().issues.mapToDto())
+            DashboardItem.AssignedToMe -> DashboardGroupContent.IssueList(IssueService.listAssignedToMe())
             is DashboardItem.CustomQuery -> DashboardGroupContent.IssueList(IssueService.listByQuery(dashboardItem.queryId, dashboardItem.projectId))
-            DashboardItem.Monitored -> DashboardGroupContent.IssueList(RedmineService.listMonitoredIssues().issues.mapToDto())
+            DashboardItem.Monitored -> DashboardGroupContent.IssueList(IssueService.listMonitored())
             DashboardItem.FollowedVersions -> DashboardGroupContent.VersionList(listFollowedVersions())
         }
     }
@@ -174,21 +171,6 @@ class DashboardViewmodel : ViewModel() {
                 RedmineQueriesByProject(foundProject?.name ?: "Todos los proyectos", queries)
             }
             availableQueries.emit(queriesByProject)
-        }
-    }
-
-    private fun List<RedmineIssue>.mapToDto(currentIssues: List<IssueListItemDto> = emptyList()): List<IssueListItemDto> {
-        return map {
-            IssueListItemDto(
-                id = it.id,
-                project = it.project,
-                status = it.status,
-                priority = it.priority,
-                subject = it.subject,
-                updatedOn = it.updatedOn,
-                fixedVersion = it.fixedVersion,
-                recentlyChanged = currentIssues.find { current -> current.id == it.id }?.updatedOn?.let { oldUpdate -> oldUpdate != it.updatedOn } ?: false
-            )
         }
     }
 
