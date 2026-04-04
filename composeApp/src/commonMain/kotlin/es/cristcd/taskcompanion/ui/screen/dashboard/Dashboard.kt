@@ -186,6 +186,16 @@ private fun GroupForm(queries: List<RedmineQueriesByProject>, onAdd: (name: Stri
         var itemBoxExpanded by remember { mutableStateOf(false) }
         var selectedGroupItemName by remember { mutableStateOf("") }
         var groupItem by remember { mutableStateOf<DashboardItem?>(null)}
+
+        val onGroupSelection = { name: String, item: DashboardItem ->
+            selectedGroupItemName = name
+            if (groupName.isBlank()) {
+                groupName = selectedGroupItemName
+            }
+            groupItem = item
+            itemBoxExpanded = false
+        }
+
         OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("Group Name") })
         ExposedDropdownMenuBox(expanded = itemBoxExpanded, onExpandedChange = { itemBoxExpanded = !itemBoxExpanded }, modifier = Modifier.widthIn(max = 500.dp)) {
             OutlinedTextField(
@@ -209,27 +219,15 @@ private fun GroupForm(queries: List<RedmineQueriesByProject>, onAdd: (name: Stri
             ) {
                 DropdownMenuItem(
                     text = { Text("Asignados a mi") },
-                    onClick = {
-                        selectedGroupItemName = "Asignados a mi"
-                        groupItem = DashboardItem.AssignedToMe
-                        itemBoxExpanded = false
-                    }
+                    onClick = { onGroupSelection("Asignados a mi", DashboardItem.AssignedToMe) }
                 )
                 DropdownMenuItem(
                     text = { Text("Monitorizados") },
-                    onClick = {
-                        selectedGroupItemName = "Monitorizados"
-                        groupItem = DashboardItem.Monitored
-                        itemBoxExpanded = false
-                    }
+                    onClick = { onGroupSelection("Monitorizados", DashboardItem.Monitored) }
                 )
                 DropdownMenuItem(
                     text = { Text("Versiones seguidas") },
-                    onClick = {
-                        selectedGroupItemName = "Versiones seguidas"
-                        groupItem = DashboardItem.FollowedVersions
-                        itemBoxExpanded = false
-                    }
+                    onClick = { onGroupSelection("Versiones seguidas", DashboardItem.FollowedVersions) }
                 )
                 queries.forEach { (project, queryList) ->
                     HorizontalDivider()
@@ -242,11 +240,7 @@ private fun GroupForm(queries: List<RedmineQueriesByProject>, onAdd: (name: Stri
                     queryList.forEach { query ->
                         DropdownMenuItem(
                             text = { Text("${query.name} (${query.id})") },
-                            onClick = {
-                                selectedGroupItemName = query.name
-                                groupItem = DashboardItem.CustomQuery(query.id, query.projectId)
-                                itemBoxExpanded = false
-                            }
+                            onClick = { onGroupSelection(query.name, DashboardItem.CustomQuery(query.id, query.projectId)) }
                         )
                     }
                 }
