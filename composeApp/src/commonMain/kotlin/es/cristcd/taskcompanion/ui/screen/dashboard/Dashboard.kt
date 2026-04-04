@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.persistence.model.DashboardItem
 import es.cristcd.taskcompanion.ui.Screen
+import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.TaskCard
 import es.cristcd.taskcompanion.ui.common.VersionCard
 import es.cristcd.taskcompanion.ui.screen.projectlist.ProjectList
@@ -106,6 +107,21 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                         is DashboardGroupContent.VersionList -> {
                             dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list, "No ${group.title.lowercase()}") {
                                 VersionCard(it.version, it.analytics, onClick = { navController.navigate(Screen.Version(it.version.id)) })
+                            }
+                        }
+                        is DashboardGroupContent.Loading -> {
+                            item(span = StaggeredGridItemSpan.FullLine) {
+                                Text(group.title, style = MaterialTheme.typography.titleMedium)
+                            }
+                            item(span = StaggeredGridItemSpan.FullLine) {
+                                Box(modifier = Modifier.fillMaxWidth().height(80.dp).clip(MaterialTheme.shapes.medium).background(
+                                    MaterialTheme.colorScheme.surfaceContainer), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(42.dp),
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    )
+                                }
                             }
                         }
                     }

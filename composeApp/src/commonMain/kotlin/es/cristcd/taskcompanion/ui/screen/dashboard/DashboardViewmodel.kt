@@ -16,24 +16,34 @@ import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import es.cristcd.taskcompanion.ui.screen.version.VersionResult
 import es.cristcd.taskcompanion.ui.screen.version.calculateAnalytics
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flatMapMerge
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.time.delay
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 class DashboardViewmodel : ViewModel() {
+    private val log = KotlinLogging.logger {}
     private var lastUpdated: Instant? = null
 
     val layoutItems: StateFlow<List<DashboardGroup>>
@@ -83,6 +93,7 @@ class DashboardViewmodel : ViewModel() {
     }
 
     private suspend fun loadItems(dashboardItem: DashboardItem): DashboardGroupContent {
+//        delay(10.seconds)
         return when(dashboardItem) {
             DashboardItem.AssignedToMe -> DashboardGroupContent.IssueList(RedmineService.listIssuesAssignedToMe().issues.mapToDto())
             is DashboardItem.CustomQuery -> DashboardGroupContent.IssueList(IssueService.listByQuery(dashboardItem.queryId, dashboardItem.projectId))
@@ -134,10 +145,10 @@ class DashboardViewmodel : ViewModel() {
     }
 
     fun createGroup(name: String, item: DashboardItem) {
-        transaction {
+        val id = transaction {
             val maxRow = DashboardLayout.row.max()
             val lastRow = DashboardLayout.select(maxRow).firstOrNull()?.get(maxRow) ?: 1
-            DashboardLayout.insert {
+            DashboardLayout.insertAndGetId {
                 it[DashboardLayout.row] = lastRow + 1
                 it[DashboardLayout.title] = name
                 it[DashboardLayout.item] = item
@@ -145,7 +156,24 @@ class DashboardViewmodel : ViewModel() {
         }
 
         viewModelScope.launch {
-            loadLayout()
+            layoutItems.emit(
+                layoutItems.value +
+                        DashboardGroup(
+                            id.value,
+                            name,
+                            DashboardGroupContent.Loading(item)
+                        )
+            )
+
+            val content = loadItems(item)
+            val updatedItems = layoutItems.value.map {
+                if (it.id == id.value) {
+                    it.copy(content = content)
+                } else {
+                    it
+                }
+            }
+            layoutItems.emit(updatedItems)
         }
     }
 
@@ -205,6 +233,7 @@ data class DashboardGroup(val id: Int, val title: String, val content: Dashboard
 sealed interface DashboardGroupContent {
     data class IssueList(val list: List<IssueListItemDto>) : DashboardGroupContent
     data class VersionList(val list: List<VersionResult.Ok>) : DashboardGroupContent
+    data class Loading(val item: DashboardItem) : DashboardGroupContent
 }
 
 data class RedmineQueriesByProject(val projectName: String, val queries: List<Query>)
