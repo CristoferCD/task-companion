@@ -28,6 +28,10 @@ import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
 import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.redmine.model.IdString
 import es.cristcd.taskcompanion.tracker.SettingsCache
+import es.cristcd.taskcompanion.ui.screen.issue.abbreviate
+import es.cristcd.taskcompanion.util.toDefaultFormatString
+import es.cristcd.taskcompanion.util.toRelativeHumanReadableString
+import org.intellij.lang.annotations.JdkConstants
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
 import kotlin.collections.get
@@ -54,9 +58,9 @@ fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, A
                         PriorityIcon(issue.priority.name)
                     }
                     Text(text = issue.subject, style = MaterialTheme.typography.titleSmall)
-                    Box(Modifier.fillMaxWidth()) {
-                        IssueTags(issue.tags, modifier = Modifier.align(Alignment.CenterStart))
-                        TaskUpdatedAt(issue.updatedOn, issue.recentlyChanged, newItemAlphaAnimation, modifier = Modifier.align(Alignment.CenterEnd))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        IssueTags(issue.tags, modifier = Modifier.weight(1f, true))
+                        TaskUpdatedAt(issue.updatedOn, issue.recentlyChanged, newItemAlphaAnimation, modifier = Modifier.weight(1f, false))
 
                     }
                 }
@@ -91,7 +95,7 @@ fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, A
 }
 
 @Composable
-fun TaskUpdatedAt(updatedOn: Instant?, recentlyChanged: Boolean, newItemAlphaAnimation: Animatable<Float, AnimationVector1D>, modifier: Modifier) {
+fun TaskUpdatedAt(updatedOn: Instant?, recentlyChanged: Boolean, newItemAlphaAnimation: Animatable<Float, AnimationVector1D>, modifier: Modifier = Modifier) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = modifier) {
         if (recentlyChanged) {
             Box(modifier = Modifier.clip(CircleShape).background(Color.Red.copy(alpha = newItemAlphaAnimation.value)).size(20.dp), contentAlignment = Alignment.Center) {
@@ -115,9 +119,10 @@ private fun TaskParent(issue: IssueListItemDto) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun IssueTags(tags: List<TagDto>, modifier: Modifier) {
-    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+private fun IssueTags(tags: List<TagDto>, modifier: Modifier = Modifier) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalArrangement = Arrangement.Center, maxLines = 2, modifier = modifier) {
         tags.forEach { tag ->
             Row(verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -139,7 +144,14 @@ private fun IssueTags(tags: List<TagDto>, modifier: Modifier) {
                     }
                     .padding(vertical = 2.dp, horizontal = 8.dp)
             ) {
-                Text(tag.name, style = MaterialTheme.typography.labelSmall)
+                TooltipBox(
+                    tooltip = { PlainTooltip { Text(tag.name) } },
+                    content = {
+                        Text(tag.name.abbreviate(10), style = MaterialTheme.typography.labelSmall)
+                    },
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                    state = rememberTooltipState()
+                )
             }
         }
     }

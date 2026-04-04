@@ -19,7 +19,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.persistence.model.DashboardItem
 import es.cristcd.taskcompanion.ui.Screen
-import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.TaskCard
 import es.cristcd.taskcompanion.ui.common.VersionCard
 import es.cristcd.taskcompanion.ui.screen.projectlist.ProjectList

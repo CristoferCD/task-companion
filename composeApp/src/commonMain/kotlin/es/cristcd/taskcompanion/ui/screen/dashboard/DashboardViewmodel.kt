@@ -3,41 +3,29 @@ package es.cristcd.taskcompanion.ui.screen.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.issue.IssueService
+import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
+import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.DashboardItem
 import es.cristcd.taskcompanion.persistence.model.DashboardLayout
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.redmine.RedmineService
-import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
-import es.cristcd.taskcompanion.issue.dto.TagDto
-import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.redmine.model.Query
+import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import es.cristcd.taskcompanion.ui.screen.version.VersionResult
 import es.cristcd.taskcompanion.ui.screen.version.calculateAnalytics
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.flatMapMerge
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.time.delay
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
-import org.jetbrains.exposed.v1.jdbc.insertAndGetId
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -93,7 +81,6 @@ class DashboardViewmodel : ViewModel() {
     }
 
     private suspend fun loadItems(dashboardItem: DashboardItem): DashboardGroupContent {
-//        delay(10.seconds)
         return when(dashboardItem) {
             DashboardItem.AssignedToMe -> DashboardGroupContent.IssueList(RedmineService.listIssuesAssignedToMe().issues.mapToDto())
             is DashboardItem.CustomQuery -> DashboardGroupContent.IssueList(IssueService.listByQuery(dashboardItem.queryId, dashboardItem.projectId))

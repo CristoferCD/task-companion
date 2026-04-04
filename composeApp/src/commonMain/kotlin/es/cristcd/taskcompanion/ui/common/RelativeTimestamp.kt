@@ -14,7 +14,7 @@ fun RelativeTimestamp(instant: Instant, style: TextStyle = LocalTextStyle.curren
     TooltipBox(
         tooltip = { PlainTooltip { Text(instant.toDefaultFormatString()) } },
         content = {
-            Text(text = instant.toRelativeHumanReadableString(), style = style)
+            Text(text = instant.toRelativeHumanReadableString(), style = style, softWrap = false)
         },
         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
         state = rememberTooltipState()
