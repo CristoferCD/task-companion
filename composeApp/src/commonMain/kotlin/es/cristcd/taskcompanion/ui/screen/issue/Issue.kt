@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.IconButton
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,8 +52,31 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
     val versions = viewmodel.versions.collectAsState()
     when (val issue = state.value) {
         is CachedResult.Loading -> FullscreenLoading()
-        is CachedResult.FromDb -> Issue(issue.issue, project.value, versions.value, watching.value, viewmodel::toggleWatching, viewmodel::updateIssueAttribute, viewmodel::startTask, viewmodel::openInBrowser, navController, issue.updatedAt)
-        is CachedResult.FromApi -> Issue(issue.issue, project.value, versions.value, watching.value, viewmodel::toggleWatching, viewmodel::updateIssueAttribute, viewmodel::startTask, viewmodel::openInBrowser, navController)
+        is CachedResult.FromDb -> Issue(
+            issue.issue,
+            project.value,
+            versions.value,
+            watching.value,
+            viewmodel::toggleWatching,
+            viewmodel::updateIssueAttribute,
+            viewmodel::startTask,
+            viewmodel::openInBrowser,
+            viewmodel::downloadFile,
+            navController,
+            issue.updatedAt,
+        )
+        is CachedResult.FromApi -> Issue(
+            issue.issue,
+            project.value,
+            versions.value,
+            watching.value,
+            viewmodel::toggleWatching,
+            viewmodel::updateIssueAttribute,
+            viewmodel::startTask,
+            viewmodel::openInBrowser,
+            viewmodel::downloadFile,
+            navController,
+        )
     }
 
 }
@@ -68,8 +92,9 @@ fun Issue(
     updateAttribute: (form: IssueForm) -> Unit,
     startTask: () -> Unit,
     openInBrowser: () -> Unit,
+    downloadFile: (Attachment) -> Unit,
     navController: NavHostController,
-    valueCachedAt: Instant? = null
+    valueCachedAt: Instant? = null,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     Scaffold(
@@ -152,7 +177,7 @@ fun Issue(
                 SelectionContainer(modifier = Modifier.weight(1f, fill = false).padding(start = 8.dp)) {
                     Text(issue.description.trim())
                 }
-                IssueSidebar(issue, project, versions, updateAttribute)
+                IssueSidebar(issue, project, versions, updateAttribute, downloadFile)
             }
 
             HorizontalDivider()
@@ -163,7 +188,13 @@ fun Issue(
 }
 
 @Composable
-fun IssueSidebar(issue: ExtendedIssue, project: Project?, versions: List<Version>, updateAttribute: (IssueForm) -> Unit) {
+fun IssueSidebar(
+    issue: ExtendedIssue,
+    project: Project?,
+    versions: List<Version>,
+    updateAttribute: (IssueForm) -> Unit,
+    downloadFile: (Attachment) -> Unit
+) {
     Column(Modifier.widthIn(50.dp, 250.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SidebarItem("Properties") {
             FlowRow(Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 12.dp)) {
@@ -230,6 +261,23 @@ fun IssueSidebar(issue: ExtendedIssue, project: Project?, versions: List<Version
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(painterResource(Res.drawable.person_24px), contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
                         Text("${it.name}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+        if (issue.attachments.isNotEmpty()) {
+            SidebarItem("Attachments") {
+                Column(Modifier.padding(vertical = 8.dp, horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    issue.attachments.sortedBy { it.createdOn }.forEach {
+                        AssistChip(
+                            label = {
+                                Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(painterResource(Res.drawable.file_present_24px), contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                                    Text("${it.filename}", style = MaterialTheme.typography.labelSmall)
+                                }
+                            },
+                            onClick = { downloadFile(it)}
+                        )
                     }
                 }
             }

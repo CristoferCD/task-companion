@@ -35,6 +35,7 @@ data class ExtendedIssue @OptIn(ExperimentalTime::class) constructor(
     val journals: List<Journal> = emptyList(),
     val watchers: List<IdString> = emptyList(),
     val allowedStatuses: List<IssueStatus> = emptyList(),
+    val attachments: List<Attachment> = emptyList(),
 )
 
 @Serializable
@@ -58,6 +59,19 @@ enum class RelationType {
     @SerialName("copied_to") COPIED_TO,
     @SerialName("copied_from") COPIED_FROM
 }
+
+@Serializable
+data class Attachment(
+    val id: Long,
+    val filename: String,
+    val filesize: Long,
+    val contentType: String,
+    val description: String,
+    val contentUrl: String,
+    val author: IdString,
+    val createdOn: Instant,
+    val thumbnailUrl: String? = null
+)
 
 @Serializable
 data class Journal @OptIn(ExperimentalTime::class) constructor(

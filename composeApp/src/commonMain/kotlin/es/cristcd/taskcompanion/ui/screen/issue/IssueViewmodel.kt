@@ -10,10 +10,7 @@ import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.RedmineIssue
 import es.cristcd.taskcompanion.persistence.model.UserPreferences
 import es.cristcd.taskcompanion.redmine.RedmineService
-import es.cristcd.taskcompanion.redmine.model.ExtendedIssue
-import es.cristcd.taskcompanion.redmine.model.IssueForm
-import es.cristcd.taskcompanion.redmine.model.Project
-import es.cristcd.taskcompanion.redmine.model.Version
+import es.cristcd.taskcompanion.redmine.model.*
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +23,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
 import org.jetbrains.exposed.v1.json.extract
 import java.awt.Desktop
+import java.io.File
 import java.net.URI
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -192,6 +190,17 @@ class IssueViewmodel : ViewModel() {
 
 
             Desktop.getDesktop().browse(URI("${url}issues/${issue.id}"))
+        }
+    }
+
+    fun downloadFile(attachment: Attachment) {
+        viewModelScope.launch {
+            val extensionSeparator = attachment.filename.lastIndexOf('.')
+            val extension = attachment.filename.substring(extensionSeparator..< attachment.filename.length)
+            val filename = attachment.filename.substring(0..< extensionSeparator)
+            val file = File.createTempFile(filename, extension)
+            RedmineService.downloadFile(attachment.contentUrl, file)
+            Desktop.getDesktop().open(file)
         }
     }
 }

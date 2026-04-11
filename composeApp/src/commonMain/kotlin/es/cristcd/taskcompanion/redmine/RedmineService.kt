@@ -13,6 +13,8 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.*
+import io.ktor.util.cio.*
+import io.ktor.utils.io.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
@@ -21,6 +23,7 @@ import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.io.File
 
 object RedmineService {
     @OptIn(ExperimentalSerializationApi::class)
@@ -122,7 +125,7 @@ object RedmineService {
     suspend fun getIssue(id: Long): ExtendedIssue {
         return client!!.get("issues/$id.json") {
             url {
-                parameter("include", "relations,journals,watchers,allowed_statuses")
+                parameter("include", "relations,journals,watchers,allowed_statuses,attachments")
             }
         }.body<ExtendedIssueRoot>().issue
     }
@@ -200,6 +203,13 @@ object RedmineService {
         } while (items.queries.isNotEmpty())
 
         return result
+    }
+
+    suspend fun downloadFile(downloadUrl: String, output: File) {
+        client!!.prepareGet(downloadUrl).execute { httpResponse ->
+            val channel: ByteReadChannel = httpResponse.body()
+            channel.copyAndClose(output.writeChannel())
+        }
     }
 
     fun clearCredentials() {
