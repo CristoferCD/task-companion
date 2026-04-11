@@ -1,6 +1,7 @@
 package es.cristcd.taskcompanion.redmine.model
 
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -30,10 +31,33 @@ data class ExtendedIssue @OptIn(ExperimentalTime::class) constructor(
     val assignedTo: IdString?,
     val fixedVersion: IdString?,
     val category: IdString?,
+    val relations: List<Relation> = emptyList(),
     val journals: List<Journal> = emptyList(),
     val watchers: List<IdString> = emptyList(),
     val allowedStatuses: List<IssueStatus> = emptyList(),
 )
+
+@Serializable
+data class Relation(
+    val id: Long,
+    val issueId: Long,
+    val issueToId: Long,
+    val relationType: RelationType,
+    val delay: String?
+)
+
+@Serializable
+enum class RelationType {
+    @SerialName("relates") RELATES,
+    @SerialName("duplicates") DUPLICATES,
+    @SerialName("duplicated") DUPLICATED,
+    @SerialName("blocks") BLOCKS,
+    @SerialName("blocked") BLOCKED,
+    @SerialName("precedes") PRECEDES,
+    @SerialName("follows") FOLLOWS,
+    @SerialName("copied_to") COPIED_TO,
+    @SerialName("copied_from") COPIED_FROM
+}
 
 @Serializable
 data class Journal @OptIn(ExperimentalTime::class) constructor(

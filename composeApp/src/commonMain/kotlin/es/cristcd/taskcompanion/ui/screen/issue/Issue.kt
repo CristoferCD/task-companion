@@ -1,21 +1,29 @@
 package es.cristcd.taskcompanion.ui.screen.issue
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -138,43 +146,125 @@ fun Issue(
                 Text("Creado por: ${issue.author.name}", style = MaterialTheme.typography.labelMedium)
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(modifier = Modifier.size(64.dp), strokeWidth = 6.dp, progress = { issue.doneRatio / 100f }, color = Color.Green)
-                    Text((issue.customFields.firstOrNull { it.name == "Puntos de historia" } as SimpleCustomField?)?.value ?: "", style = MaterialTheme.typography.labelMedium)
-                }
+            Spacer(Modifier.height(8.dp))
 
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                    IssueAttributeTag("Tipo", issue.tracker.name) { dismiss ->
-                        project?.trackers?.sortedBy { it.id }?.forEach { tracker ->
-                            DropdownMenuItem(text = { Text(tracker.name ?: "") }, onClick = { dismiss(); updateAttribute(IssueForm(trackerId = tracker.id)) })
-                        }
-                    }
-                    IssueAttributeTag("Version prevista", issue.fixedVersion?.name) { dismiss ->
-                        versions.sortedByDescending { it.createdOn }.forEach { version ->
-                            DropdownMenuItem(text = { Text(version.name) }, onClick = { dismiss(); updateAttribute(IssueForm(fixedVersionId = version.id)) })
-                        }
-                    }
-                    IssueAttributeTag("Asignado a", issue.assignedTo?.name)
-                    IssueAttributeTag("Responsable", (issue.customFields.firstOrNull { it.name == "Responsable" } as SimpleCustomField?)?.value)
-                    IssueAttributeTag("Puntos de historia", (issue.customFields.firstOrNull { it.name == "Puntos de historia" } as SimpleCustomField?)?.value)
-                    IssueAttributeTag("Tiempo estimado", issue.estimatedHours.toString())
-                    IssueAttributeTag("Fecha fin", issue.dueDate.toString())
-                    IssueAttributeTag("% Realizado", issue.doneRatio.toString())
-                    IssueAttributeTag("Categoría", issue.category?.name) { dismiss ->
-                        project?.issueCategories?.sortedBy { it.name }?.forEach { category ->
-                            DropdownMenuItem(text = { Text(category.name ?: "") }, onClick = { dismiss(); updateAttribute(IssueForm(categoryId = category.id)) })
-                        }
-                    }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SelectionContainer(modifier = Modifier.weight(1f, fill = false).padding(start = 8.dp)) {
+                    Text(issue.description.trim())
                 }
+                IssueSidebar(issue, project, versions, updateAttribute)
             }
 
-            SelectionContainer {
-                Text(issue.description.trim())
-            }
             HorizontalDivider()
             Text("Comentarios: ", style = MaterialTheme.typography.titleSmall)
             issue.journals.forEach { Journal(it) }
+        }
+    }
+}
+
+@Composable
+fun IssueSidebar(issue: ExtendedIssue, project: Project?, versions: List<Version>, updateAttribute: (IssueForm) -> Unit) {
+    Column(Modifier.widthIn(50.dp, 250.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SidebarItem("Properties") {
+            FlowRow(Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 12.dp)) {
+                IssueAttributeTag("Tipo", issue.tracker.name) { dismiss ->
+                    project?.trackers?.sortedBy { it.id }?.forEach { tracker ->
+                        DropdownMenuItem(text = { Text(tracker.name ?: "") }, onClick = { dismiss(); updateAttribute(IssueForm(trackerId = tracker.id)) })
+                    }
+                }
+                if (versions.isNotEmpty()) {
+                    IssueAttributeTag("Version prevista", issue.fixedVersion?.name) { dismiss ->
+                        versions.sortedByDescending { it.createdOn }.forEach { version ->
+                            DropdownMenuItem( text = { Text(version.name) },  onClick = { dismiss(); updateAttribute(IssueForm(fixedVersionId = version.id)) })
+                        }
+                    }
+                }
+                IssueAttributeTag("Asignado a", issue.assignedTo?.name)
+                IssueAttributeTag("% Realizado", issue.doneRatio.toString())
+                IssueAttributeTag("Categoría", issue.category?.name) { dismiss ->
+                    project?.issueCategories?.sortedBy { it.name }?.forEach { category ->
+                        DropdownMenuItem(text = { Text(category.name ?: "") }, onClick = { dismiss(); updateAttribute(IssueForm(categoryId = category.id)) })
+                    }
+                }
+                IssueAttributeTag("Fecha inicio", issue.startDate.toString())
+                IssueAttributeTag("Fecha fin", issue.dueDate.toString())
+                IssueAttributeTag("Tiempo estimado", issue.estimatedHours.toString())
+            }
+        }
+        SidebarItem("Custom fields") {
+            Column(Modifier.padding(vertical = 8.dp, horizontal = 12.dp)) {
+                issue.customFields.sortedBy { it.id }.forEach {
+                    val value = when(it) {
+                        is SimpleCustomField -> it.value
+                        is MultipleCustomField -> it.value?.joinToString(", ")
+                    }
+                    IssueAttributeTag(it.name, value)
+                }
+            }
+        }
+        SidebarItem("Relations") {
+            Column(Modifier.padding(vertical = 8.dp, horizontal = 12.dp)) {
+                issue.relations.sortedBy { it.id }.forEach {
+                    val otherId = if (it.issueId != issue.id) it.issueId else it.issueToId
+                    val iconAndText = when(it.relationType) {
+                        RelationType.RELATES -> Res.drawable.link_2_24px to "Relates to $otherId"
+                        RelationType.DUPLICATES -> Res.drawable.arrows_outward_24px to "Duplicate of $otherId"
+                        RelationType.DUPLICATED -> Res.drawable.arrows_outward_24px to "Duplicated by $otherId"
+                        RelationType.BLOCKS -> Res.drawable.shield_lock_24px to "Blocks $otherId"
+                        RelationType.BLOCKED -> Res.drawable.shield_lock_24px to "Blocked by $otherId"
+                        RelationType.PRECEDES -> Res.drawable.swipe_right_alt_24px to "Precedes: $otherId"
+                        RelationType.FOLLOWS -> Res.drawable.swipe_right_alt_24px to "Follows $otherId"
+                        RelationType.COPIED_TO -> Res.drawable.content_copy_24px to "Copied to $otherId"
+                        RelationType.COPIED_FROM -> Res.drawable.content_copy_24px to "Copied from $otherId"
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(painterResource(iconAndText.first), contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                        Text(iconAndText.second, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+        SidebarItem("Watchers") {
+            Column(Modifier.padding(vertical = 8.dp, horizontal = 12.dp)) {
+                issue.watchers.sortedBy { it.id }.forEach {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(painterResource(Res.drawable.person_24px), contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                        Text("${it.name}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+fun SidebarItem(title: String, content: @Composable () -> Unit) {
+    Box {
+        var expanded by remember { mutableStateOf(false) }
+        val degrees by animateFloatAsState(if (expanded) -90f else 90f)
+        Column(Modifier.clip(MaterialTheme.shapes.extraSmall).background(MaterialTheme.colorScheme.surfaceContainer)) {
+            Row(modifier = Modifier.clickable { expanded = expanded.not() }.fillMaxWidth().padding(vertical = 8.dp, horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.labelMedium)
+                Image(
+                    painterResource(Res.drawable.chevron_right_24px),
+                    contentDescription = null,
+                    modifier = Modifier.rotate(degrees).size(16.dp),
+                    colorFilter = ColorFilter.tint(Color.Gray)
+                )
+            }
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(
+                    spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        visibilityThreshold = IntSize.VisibilityThreshold
+                    )
+                ),
+                exit = shrinkVertically()
+            ) {
+                content()
+            }
         }
     }
 }
@@ -201,7 +291,7 @@ fun IssueAttributeTag(label: String, value: String?, dropdownContent: @Composabl
     Box {
         AssistChip(
             label = {
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("$label:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                     Text(value ?: "", style = MaterialTheme.typography.labelMedium)
                 }

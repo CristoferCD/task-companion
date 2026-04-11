@@ -6,7 +6,7 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
-import io.ktor.client.plugins.cache.HttpCache
+import io.ktor.client.plugins.cache.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
@@ -122,7 +122,7 @@ object RedmineService {
     suspend fun getIssue(id: Long): ExtendedIssue {
         return client!!.get("issues/$id.json") {
             url {
-                parameter("include", "journals,watchers,allowed_statuses")
+                parameter("include", "relations,journals,watchers,allowed_statuses")
             }
         }.body<ExtendedIssueRoot>().issue
     }
