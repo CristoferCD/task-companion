@@ -174,7 +174,7 @@ fun Issue(
             Spacer(Modifier.height(8.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SelectionContainer(modifier = Modifier.weight(1f, fill = false).padding(start = 8.dp)) {
+                SelectionContainer(modifier = Modifier.weight(1f, fill = true).padding(start = 8.dp)) {
                     Text(issue.description.trim())
                 }
                 IssueSidebar(issue, project, versions, updateAttribute, downloadFile)
