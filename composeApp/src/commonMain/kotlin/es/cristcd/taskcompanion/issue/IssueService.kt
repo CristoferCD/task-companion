@@ -57,15 +57,31 @@ object IssueService {
     }
 
     private fun extractTagsFromTitle(subject: String): Pair<String, List<TagDto>> {
-        val matchResult = Regex("(?<tags>\\[.*\\])*(?<subject>.*)").matchEntire(subject)
-        val cleanSubject = matchResult?.groups["subject"]?.value?.trim() ?: subject
-        val tags = matchResult?.groups["tags"]?.value
-        val tagList = Regex("\\[(?<tag>.*?)\\]").findAll(tags ?: "")
-            .mapNotNull { it.groups["tag"]?.value }
-            .map { TagDto(-1, it, null) }
-            .toList()
+        val tags = mutableListOf<TagDto>()
 
-        return cleanSubject to tagList
+        var finalText = subject
+        do {
+            val nextTag = extractSingleTagFromStart(finalText)
+            if (nextTag != null) {
+                tags.add(TagDto(-1, nextTag.substring(1, nextTag.length - 1)))
+                finalText = finalText.substring(nextTag.length, finalText.length)
+            }
+        } while (nextTag != null)
+
+        return finalText.trim() to tags
+    }
+
+    private fun extractSingleTagFromStart(subject: String): String? {
+        if (!subject.startsWith('[')) {
+            return null
+        }
+
+        val endIdx = subject.indexOfFirst { it == ']' }
+        if (endIdx == -1) {
+            return null
+        }
+
+        return subject.substring(0, endIdx + 1)
     }
 
     private fun updateIssuesFromRedmine(redmineIssues: List<RedmineIssue>) {
