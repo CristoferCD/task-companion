@@ -36,6 +36,8 @@ kotlin {
             implementation(libs.exposed.jdbc)
             implementation(libs.exposed.json)
             implementation(libs.exposed.kotlin.datetime)
+            implementation(libs.exposed.migration.core)
+            implementation(libs.exposed.migration.jdbc)
             implementation(libs.sqlite)
             implementation(libs.charts)
 //            implementation(libs.compose.colorpicker)

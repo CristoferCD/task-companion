@@ -11,14 +11,18 @@ import es.cristcd.taskcompanion.persistence.model.Status
 import es.cristcd.taskcompanion.persistence.model.Tag
 import es.cristcd.taskcompanion.persistence.model.Task
 import es.cristcd.taskcompanion.persistence.model.UserPreferences
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 import java.io.File
 import java.sql.Connection
 
 object PersistenceManager {
+    val log = KotlinLogging.logger { }
+
     fun init() {
         val dbDir = if (System.getenv("app.env") == "dev") {
             "data.db"
@@ -44,6 +48,25 @@ object PersistenceManager {
                 Task,
                 UserPreferences
             )
+
+            MigrationUtils.statementsRequiredForDatabaseMigration(
+                Category,
+                DashboardIssueItem,
+                DashboardLayout,
+                FollowedRedmineVersion,
+                Issue,
+                IssueTag,
+                RedmineIssue,
+                Status,
+                Tag,
+                Task,
+                UserPreferences
+            ).forEach {
+                log.info { "Executing migration: $it" }
+                exec(it)
+            }
+
+
         }
     }
 

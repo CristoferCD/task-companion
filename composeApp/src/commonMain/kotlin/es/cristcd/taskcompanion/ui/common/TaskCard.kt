@@ -96,7 +96,15 @@ fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, A
 
 @Composable
 fun TaskUpdatedAt(updatedOn: Instant?, recentlyChanged: Boolean, newItemAlphaAnimation: Animatable<Float, AnimationVector1D>, modifier: Modifier = Modifier) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = modifier) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = modifier.let {
+            if (recentlyChanged) {
+                it.border(2.dp, Color.Red.copy(alpha = newItemAlphaAnimation.value), MaterialTheme.shapes.small)
+                    .padding(horizontal = 6.dp, vertical = 4.dp)
+            } else {
+                it
+            }
+        }) {
         if (recentlyChanged) {
             Box(modifier = Modifier.clip(CircleShape).background(Color.Red.copy(alpha = newItemAlphaAnimation.value)).size(20.dp), contentAlignment = Alignment.Center) {
                 Icon(painterResource(Res.drawable.notification_important_24px), null, tint = Color.Gray, modifier = Modifier.size(16.dp))

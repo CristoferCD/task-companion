@@ -35,6 +35,7 @@ object IssueService {
     private fun loadFromRedmineInfo(redmineIssues: List<RedmineIssue>): List<IssueListItemDto> {
         val redmineIds = redmineIssues.map { it.id }
         val tags = listTagsByIssue(redmineIds)
+        val changedIssues = listChangedIssues(redmineIssues)
 
         updateIssuesFromRedmine(redmineIssues)
 
@@ -50,7 +51,7 @@ object IssueService {
                 subject = detectedTags.first,
                 updatedOn = it.updatedOn,
                 fixedVersion = it.fixedVersion,
-                recentlyChanged = false, //TODO recentlyChanged = currentIssues.find { current -> current.id == it.id }?.updatedOn?.let { oldUpdate -> oldUpdate != it.updatedOn } ?: false
+                recentlyChanged = changedIssues.contains(it.id),
                 (tags[it.id] ?: emptyList()) + detectedTags.second,
             )
         }
@@ -97,8 +98,22 @@ object IssueService {
                     it[Issue.subject] = issue.subject
                     it[Issue.status] = statuses[issue.status.id]
                     it[Issue.redmineId] = issue.id
+                    it[Issue.updatedOn] = issue.updatedOn
                 }
             }
+        }
+    }
+
+    private fun listChangedIssues(redmineIssues: List<RedmineIssue>): List<Long> {
+        return transaction {
+            Issue.select(Issue.redmineId, Issue.updatedOn)
+                .where {
+                    Issue.redmineId inList redmineIssues.map { it.id }
+                }
+                .filter { dbIssue ->
+                    redmineIssues.any { it.id == dbIssue[Issue.redmineId] && it.updatedOn != dbIssue[Issue.updatedOn] }
+                }
+                .mapNotNull { it[Issue.redmineId] }
         }
     }
 

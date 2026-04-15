@@ -92,11 +92,11 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                 .fillMaxHeight(),
         ) {
             val alphaAnimation = remember {
-                Animatable(0.5f)
+                Animatable(0.8f)
             }
             LaunchedEffect(items.value) {
-                alphaAnimation.snapTo(0.5f)
-                alphaAnimation.animateTo(0f, animationSpec = tween(3000))
+                alphaAnimation.snapTo(0.8f)
+                alphaAnimation.animateTo(0.3f, animationSpec = tween(3000))
             }
             var sidebarNavigation by remember { mutableStateOf<SidebarNavigation>(SidebarNavigation.None) }
             LazyVerticalStaggeredGrid(
