@@ -64,7 +64,7 @@ compose.desktop {
             //suggestRuntimeModules task
             modules("java.instrument", "java.management", "java.sql", "java.naming", "jdk.unsupported")
             packageName = "es.cristcd.taskcompanion"
-            packageVersion = "0.0.8"
+            packageVersion = "0.0.9"
 
             windows {
                 dirChooser = true
