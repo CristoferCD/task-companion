@@ -1,18 +1,19 @@
 [versions]
-androidx-lifecycle = "2.10.0-alpha06"
+androidx-lifecycle = "2.10.0"
 composeHotReload = "1.0.0"
-composeMultiplatform = "1.10.0"
-androidx-navigation = "2.9.1"
+composeMultiplatform = "1.10.3"
+compose-material3 = "1.10.0-alpha05"
+androidx-navigation = "2.9.2"
 junit = "4.13.2"
-kotlin = "2.3.0"
+kotlin = "2.3.21"
 kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1"
-kotlin-serialization = "1.9.0"
-ktor = "3.3.3"
+kotlin-serialization = "1.11.0"
+ktor = "3.4.3"
 kotlin-logging = "7.0.14"
-logback = "1.5.25"
-exposed = "1.0.0"
-sqlite = "3.51.1.0"
+logback = "1.5.32"
+exposed = "1.2.0"
+sqlite = "3.53.0.0"
 charts = "0.1.11"
 versions = "0.53.0"
 colorpicker = "1.1.2"
@@ -21,6 +22,12 @@ colorpicker = "1.1.2"
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref="compose-material3"}
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }

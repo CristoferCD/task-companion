@@ -7,21 +7,21 @@ import es.cristcd.taskcompanion.redmine.model.IssueList
 import es.cristcd.taskcompanion.redmine.model.Project
 import es.cristcd.taskcompanion.redmine.model.Version
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class ProjectViewmodel: ViewModel() {
-    private val _version = MutableStateFlow<ProjectResult>(ProjectResult.Loading)
-    val version = _version.asStateFlow()
+    val version: StateFlow<ProjectResult>
+        field = MutableStateFlow<ProjectResult>(ProjectResult.Loading)
 
 
     fun load(projectId: Long) {
         viewModelScope.launch {
-            _version.emit(ProjectResult.Loading)
+            version.emit(ProjectResult.Loading)
             val project = RedmineService.getProject(projectId)
             val versionList = RedmineService.listProjectVersions(projectId)
             val recentIssues = RedmineService.listIssuesByProject(projectId)
-            _version.emit(ProjectResult.Ok(project, versionList, recentIssues))
+            version.emit(ProjectResult.Ok(project, versionList, recentIssues))
         }
     }
 }

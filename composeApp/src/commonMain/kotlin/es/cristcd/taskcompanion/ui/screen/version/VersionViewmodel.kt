@@ -12,7 +12,9 @@ import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
 import es.cristcd.taskcompanion.redmine.model.Version
 import es.cristcd.taskcompanion.redmine.model.storyPoints
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -21,17 +23,17 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 class VersionViewmodel : ViewModel() {
-    private val _version = MutableStateFlow<VersionResult>(VersionResult.Loading)
-    val version = _version.asStateFlow()
+    val version: StateFlow<VersionResult>
+        field = MutableStateFlow<VersionResult>(VersionResult.Loading)
 
     fun loadVersion(id: Long) {
         viewModelScope.launch {
-            _version.emit(VersionResult.Loading)
-            val version = RedmineService.getVersion(id)
+            version.emit(VersionResult.Loading)
+            val redmineVersion = RedmineService.getVersion(id)
             val issues = RedmineService.listIssues(id)
             val analytics = calculateAnalytics(issues)
-            val following = isFollowingVersion(version.id)
-            _version.emit(VersionResult.Ok(version, following, issues, analytics))
+            val following = isFollowingVersion(redmineVersion.id)
+            version.emit(VersionResult.Ok(redmineVersion, following, issues, analytics))
         }
     }
 
@@ -43,25 +45,25 @@ class VersionViewmodel : ViewModel() {
 
     fun toggleFollowVersion() {
         viewModelScope.launch {
-            val version = when(val versionResult = version.value) {
+            val currentVersion = when(val versionResult = version.value) {
                 is VersionResult.Ok -> versionResult
                 else -> null
             } ?: return@launch
 
-            val currentlyFollowing = version.following
+            val currentlyFollowing = currentVersion.following
             if (currentlyFollowing) {
                 transaction {
-                    FollowedRedmineVersion.deleteWhere { FollowedRedmineVersion.redmineVersionId eq version.version.id }
+                    FollowedRedmineVersion.deleteWhere { FollowedRedmineVersion.redmineVersionId eq currentVersion.version.id }
                 }
             } else {
                 transaction {
                     FollowedRedmineVersion.insert {
-                        it[FollowedRedmineVersion.redmineVersionId] = version.version.id
+                        it[FollowedRedmineVersion.redmineVersionId] = currentVersion.version.id
                     }
                 }
             }
 
-            _version.emit(version.copy(following = !currentlyFollowing))
+            version.emit(currentVersion.copy(following = !currentlyFollowing))
         }
     }
 }

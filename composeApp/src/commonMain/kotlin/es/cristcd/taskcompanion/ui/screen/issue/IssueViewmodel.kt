@@ -14,7 +14,7 @@ import es.cristcd.taskcompanion.redmine.model.*
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.select
@@ -30,29 +30,29 @@ import kotlin.time.ExperimentalTime
 
 class IssueViewmodel : ViewModel() {
 
-    private val _issue = MutableStateFlow<CachedResult<ExtendedIssue>>(CachedResult.Loading)
-    val issue = _issue.asStateFlow()
+    val issue: StateFlow<CachedResult<ExtendedIssue>>
+        field = MutableStateFlow<CachedResult<ExtendedIssue>>(CachedResult.Loading)
 
-    private val _watching = MutableStateFlow(false)
-    val watching = _watching.asStateFlow()
+    val watching: StateFlow<Boolean>
+        field = MutableStateFlow(false)
 
-    private val _project = MutableStateFlow<Project?>(null)
-    val project = _project.asStateFlow()
+    val project: StateFlow<Project?>
+        field = MutableStateFlow<Project?>(null)
 
-    private val _versions = MutableStateFlow<List<Version>>(emptyList())
-    val versions = _versions.asStateFlow()
+    val versions: StateFlow<List<Version>>
+        field = MutableStateFlow<List<Version>>(emptyList())
 
     init {
         val userId = getUserId()
 
         viewModelScope.launch {
             issue.collect {
-                val watchers = when(it) {
+                val watchers = when (it) {
                     is CachedResult.FromApi -> it.issue.watchers
                     is CachedResult.FromDb -> it.issue.watchers
                     CachedResult.Loading -> emptyList()
                 }
-                _watching.emit(watchers.any{ it.id == userId })
+                watching.emit(watchers.any { it.id == userId })
             }
         }
     }
@@ -90,24 +90,24 @@ class IssueViewmodel : ViewModel() {
                     val currentId = RedmineIssue.selectAll()
                         .where { RedmineIssue.data.extract<Long>(".id") eq id }
                         .firstOrNull()?.let { it[RedmineIssue.id] }
-                     RedmineIssue.upsert {
-                         currentId?.let { id -> it[RedmineIssue.id] = id }
-                         it[data] = issue
-                         it[updatedAt] = Clock.System.now()
-                     }
+                    RedmineIssue.upsert {
+                        currentId?.let { id -> it[RedmineIssue.id] = id }
+                        it[data] = issue
+                        it[updatedAt] = Clock.System.now()
+                    }
                 }
-            ).collect { issue -> _issue.emit(issue) }
+            ).collect { issue.emit(it) }
         }
     }
 
     private suspend fun loadProjectInfo(projectId: Long) {
-        _project.emit(RedmineService.getProject(projectId))
-        _versions.emit(RedmineService.listOpenProjectVersions(projectId))
+        project.emit(RedmineService.getProject(projectId))
+        versions.emit(RedmineService.listOpenProjectVersions(projectId))
     }
 
     fun toggleWatching() {
         viewModelScope.launch {
-            val issueId = when(val issueResult = issue.value) {
+            val issueId = when (val issueResult = issue.value) {
                 is CachedResult.FromDb -> issueResult.issue.id
                 is CachedResult.FromApi -> issueResult.issue.id
                 else -> null
@@ -124,13 +124,13 @@ class IssueViewmodel : ViewModel() {
             } else {
                 RedmineService.watchIssue(issueId, userId)
             }
-            _watching.emit(!currentlyWatching)
+            watching.emit(!currentlyWatching)
         }
     }
 
     fun updateIssueAttribute(form: IssueForm) {
         viewModelScope.launch {
-            val issueId = when(val issueResult = issue.value) {
+            val issueId = when (val issueResult = issue.value) {
                 is CachedResult.FromDb -> issueResult.issue.id
                 is CachedResult.FromApi -> issueResult.issue.id
                 else -> null
@@ -148,7 +148,7 @@ class IssueViewmodel : ViewModel() {
 
     fun startTask() {
         viewModelScope.launch {
-            val issue = when(val issueResult = issue.value) {
+            val issue = when (val issueResult = issue.value) {
                 is CachedResult.FromDb -> issueResult.issue
                 is CachedResult.FromApi -> issueResult.issue
                 else -> null
@@ -174,7 +174,7 @@ class IssueViewmodel : ViewModel() {
 
     fun openInBrowser() {
         viewModelScope.launch {
-            val issue = when(val issueResult = issue.value) {
+            val issue = when (val issueResult = issue.value) {
                 is CachedResult.FromDb -> issueResult.issue
                 is CachedResult.FromApi -> issueResult.issue
                 else -> null
@@ -185,7 +185,8 @@ class IssueViewmodel : ViewModel() {
             }
 
             val url = transaction {
-                UserPreferences.select(UserPreferences.redmineUrl).singleOrNull()?.let { it[UserPreferences.redmineUrl] }
+                UserPreferences.select(UserPreferences.redmineUrl).singleOrNull()
+                    ?.let { it[UserPreferences.redmineUrl] }
             } ?: return@launch
 
 
@@ -196,17 +197,11 @@ class IssueViewmodel : ViewModel() {
     fun downloadFile(attachment: Attachment) {
         viewModelScope.launch {
             val extensionSeparator = attachment.filename.lastIndexOf('.')
-            val extension = attachment.filename.substring(extensionSeparator..< attachment.filename.length)
-            val filename = attachment.filename.substring(0..< extensionSeparator)
+            val extension = attachment.filename.substring(extensionSeparator..<attachment.filename.length)
+            val filename = attachment.filename.substring(0..<extensionSeparator)
             val file = File.createTempFile(filename, extension)
             RedmineService.downloadFile(attachment.contentUrl, file)
             Desktop.getDesktop().open(file)
         }
     }
 }
-
-//sealed interface IssueResult {
-//    data object Loading : IssueResult
-//    data class CachedResult(val issue: ExtendedIssue, val updatedAt: Instant) : IssueResult
-//    data class ApiResult(val issue: ExtendedIssue) : IssueResult
-//}

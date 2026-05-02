@@ -7,7 +7,7 @@ import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.TaskDto
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import kotlin.time.Clock
@@ -15,20 +15,20 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 class TrackerViewmodel : ViewModel() {
-    private val _tasks = MutableStateFlow<List<TaskDto>>(emptyList())
-    val tasks = _tasks.asStateFlow()
+    val tasks: StateFlow<List<TaskDto>>
+        field = MutableStateFlow<List<TaskDto>>(emptyList())
 
-    private val _categories = MutableStateFlow(emptyList<CategoryDto>())
-    val categories = _categories.asStateFlow()
+    val categories: StateFlow<List<CategoryDto>>
+        field = MutableStateFlow(emptyList<CategoryDto>())
 
-    private val _currentDay = MutableStateFlow(today())
-    val currentDay = _currentDay.asStateFlow()
+    val currentDay: StateFlow<LocalDate>
+        field = MutableStateFlow(today())
 
     fun load(day: LocalDate) {
         viewModelScope.launch {
-            _currentDay.emit(day)
-            _tasks.emit(TrackerService.getByDate(day))
-            _categories.emit(TrackerService.listCategories())
+            currentDay.emit(day)
+            tasks.emit(TrackerService.getByDate(day))
+            categories.emit(TrackerService.listCategories())
         }
     }
 

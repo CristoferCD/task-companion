@@ -33,20 +33,20 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 class SettingsViewmodel : ViewModel() {
     private val log = KotlinLogging.logger {}
 
-    private val _redmineUser = MutableStateFlow<RedmineUserResult>(RedmineUserResult.Loading)
-    val redmineUser = _redmineUser.asStateFlow()
+    val redmineUser: StateFlow<RedmineUserResult>
+        field = MutableStateFlow<RedmineUserResult>(RedmineUserResult.Loading)
 
-    private val _categories = MutableStateFlow(emptyList<CategoryDto>())
-    val categories = _categories.asStateFlow()
+    val categories: StateFlow<List<CategoryDto>>
+        field = MutableStateFlow(emptyList<CategoryDto>())
 
-    private val _projects = MutableStateFlow(emptyList<Project>())
-    val projects = _projects.asStateFlow()
+    val projects: StateFlow<List<Project>>
+        field = MutableStateFlow(emptyList<Project>())
 
-    private val _statuses = MutableStateFlow(emptyList<StatusDto>())
-    val statuses = _statuses.asStateFlow()
+    val statuses: StateFlow<List<StatusDto>>
+        field = MutableStateFlow(emptyList<StatusDto>())
 
-    private val _redmineStatuses = MutableStateFlow(emptyList<IssueStatus>())
-    val redmineStatuses = _redmineStatuses.asStateFlow()
+    val redmineStatuses: StateFlow<List<IssueStatus>>
+        field = MutableStateFlow(emptyList<IssueStatus>())
 
     val tags: StateFlow<List<TagDto>>
         field = MutableStateFlow(emptyList())
@@ -56,22 +56,22 @@ class SettingsViewmodel : ViewModel() {
             //TODO: handle unauthorized
             try {
                 val user = RedmineService.getLoggedUser()
-                _redmineUser.emit(RedmineUserResult.Ok(user))
+                redmineUser.emit(RedmineUserResult.Ok(user))
             } catch (e: Exception) {
-                _redmineUser.emit(RedmineUserResult.NotLoggedIn)
+                redmineUser.emit(RedmineUserResult.NotLoggedIn)
             }
         }
     }
 
     fun saveRedmineSettings(url: String, apiKey: String) {
         viewModelScope.launch {
-            _redmineUser.emit(RedmineUserResult.Loading)
+            redmineUser.emit(RedmineUserResult.Loading)
             try {
                 val user = RedmineService.updateCredentials(url, apiKey)
                 transaction {
                     val prefsDB = UserPreferences.selectAll().firstOrNull()
                     if (prefsDB != null) {
-                        UserPreferences.update({ UserPreferences.id eq prefsDB[UserPreferences.id]}) {
+                        UserPreferences.update({ UserPreferences.id eq prefsDB[UserPreferences.id] }) {
                             it[UserPreferences.redmineId] = user.id
                             it[UserPreferences.redmineUrl] = url
                             it[UserPreferences.apiKey] = apiKey
@@ -84,10 +84,10 @@ class SettingsViewmodel : ViewModel() {
                         }
                     }
                 }
-                _redmineUser.emit(RedmineUserResult.Ok(user))
+                redmineUser.emit(RedmineUserResult.Ok(user))
             } catch (e: Exception) {
                 log.error(e) { "Failed to save redmine settings" }
-                _redmineUser.emit(RedmineUserResult.NotLoggedIn)
+                redmineUser.emit(RedmineUserResult.NotLoggedIn)
             }
         }
     }
@@ -102,31 +102,31 @@ class SettingsViewmodel : ViewModel() {
                 }
             }
             RedmineService.clearCredentials()
-            _redmineUser.emit(RedmineUserResult.NotLoggedIn)
+            redmineUser.emit(RedmineUserResult.NotLoggedIn)
         }
     }
 
     fun loadCategories() {
         viewModelScope.launch {
-            _categories.emit(TrackerService.listCategories())
+            categories.emit(TrackerService.listCategories())
         }
     }
 
     fun loadProjects() {
         viewModelScope.launch {
-            _projects.emit(RedmineService.listProjects())
+            projects.emit(RedmineService.listProjects())
         }
     }
 
     fun loadStatuses() {
         viewModelScope.launch {
-            _statuses.emit(TrackerService.listStatuses())
+            statuses.emit(TrackerService.listStatuses())
         }
     }
 
     fun loadRedmineStatuses() {
         viewModelScope.launch {
-            _redmineStatuses.emit(RedmineService.listStatus())
+            redmineStatuses.emit(RedmineService.listStatus())
         }
     }
 
@@ -141,7 +141,9 @@ class SettingsViewmodel : ViewModel() {
             transaction {
                 //TODO: upsert
                 Category.upsert {
-                    category.id?.let {categoryId -> it[id] = EntityIDFunctionProvider.createEntityID(categoryId, Category) }
+                    category.id?.let { categoryId ->
+                        it[id] = EntityIDFunctionProvider.createEntityID(categoryId, Category)
+                    }
                     it[name] = category.name
                     it[type] = if (category.work) CategoryType.WORK else CategoryType.REST
                     it[color] = category.color
@@ -199,7 +201,7 @@ class SettingsViewmodel : ViewModel() {
         )
         viewModelScope.launch {
             RedmineService.listStatus().forEachIndexed { idx, redmineStatus ->
-                transaction { 
+                transaction {
                     Status.insert {
                         it[name] = redmineStatus.name
                         it[color] = palette[idx % palette.size]
@@ -229,7 +231,7 @@ class SettingsViewmodel : ViewModel() {
 
 
 sealed interface RedmineUserResult {
-    data object Loading: RedmineUserResult
-    data class Ok(val user: User): RedmineUserResult
-    data object NotLoggedIn: RedmineUserResult
+    data object Loading : RedmineUserResult
+    data class Ok(val user: User) : RedmineUserResult
+    data object NotLoggedIn : RedmineUserResult
 }

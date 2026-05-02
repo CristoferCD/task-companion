@@ -17,6 +17,7 @@ import es.cristcd.taskcompanion.ui.screen.version.VersionResult
 import es.cristcd.taskcompanion.ui.screen.version.calculateAnalytics
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
@@ -91,14 +92,15 @@ class DashboardViewmodel : ViewModel() {
                 loadItems(layoutItem[DashboardLayout.item])
             )
 
-            val loadedList = layoutItems.value
-            layoutItems.emit(loadedList.map {
-                if (it.id == group.id) {
-                    group
-                } else {
-                    it
+            layoutItems.update { loadedList ->
+                loadedList.map {
+                    if (it.id == group.id) {
+                        group
+                    } else {
+                        it
+                    }
                 }
-            })
+            }
         }
     }
 
@@ -131,24 +133,24 @@ class DashboardViewmodel : ViewModel() {
         }
 
         viewModelScope.launch {
-            layoutItems.emit(
-                layoutItems.value +
-                        DashboardGroup(
-                            id.value,
-                            name,
-                            DashboardGroupContent.Loading(item)
-                        )
-            )
+            layoutItems.update {
+                it + DashboardGroup(
+                    id.value,
+                    name,
+                    DashboardGroupContent.Loading(item)
+                )
+            }
 
             val content = loadItems(item)
-            val updatedItems = layoutItems.value.map {
-                if (it.id == id.value) {
-                    it.copy(content = content)
-                } else {
-                    it
+            layoutItems.update { currentList ->
+                currentList.map {
+                    if (it.id == id.value) {
+                        it.copy(content = content)
+                    } else {
+                        it
+                    }
                 }
             }
-            layoutItems.emit(updatedItems)
         }
     }
 
