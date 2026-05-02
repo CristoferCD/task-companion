@@ -65,7 +65,7 @@ object IssueService {
             val nextTag = extractSingleTagFromStart(finalText)
             if (nextTag != null) {
                 tags.add(TagDto(-1, nextTag.substring(1, nextTag.length - 1)))
-                finalText = finalText.substring(nextTag.length, finalText.length)
+                finalText = finalText.substring(nextTag.length, finalText.length).trim()
             }
         } while (nextTag != null)
 
