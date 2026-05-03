@@ -10,6 +10,7 @@ import io.ktor.client.plugins.cache.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.*
@@ -210,6 +211,10 @@ object RedmineService {
             val channel: ByteReadChannel = httpResponse.body()
             channel.copyAndClose(output.writeChannel())
         }
+    }
+
+    suspend fun loadImage(imageUrl: String): ByteArray {
+        return client!!.get(imageUrl).bodyAsBytes()
     }
 
     fun clearCredentials() {

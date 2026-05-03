@@ -1,3 +1,4 @@
+
 package es.cristcd.taskcompanion.ui.screen.issue
 
 import androidx.compose.animation.AnimatedVisibility
@@ -9,6 +10,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.ExperimentalMaterialApi
@@ -21,14 +24,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.core.CachedResult
+import es.cristcd.taskcompanion.parser.Block
+import es.cristcd.taskcompanion.parser.InlineItem
+import es.cristcd.taskcompanion.parser.parseBlocks
 import es.cristcd.taskcompanion.redmine.model.*
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.PriorityIcon
@@ -50,6 +61,8 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
     val state = viewmodel.issue.collectAsState()
     val project = viewmodel.project.collectAsState()
     val versions = viewmodel.versions.collectAsState()
+    val images = viewmodel.images.collectAsState(emptyMap())
+
     when (val issue = state.value) {
         is CachedResult.Loading -> FullscreenLoading()
         is CachedResult.FromDb -> Issue(
@@ -57,6 +70,7 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
             project.value,
             versions.value,
             watching.value,
+            images.value,
             viewmodel::toggleWatching,
             viewmodel::updateIssueAttribute,
             viewmodel::startTask,
@@ -70,6 +84,7 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
             project.value,
             versions.value,
             watching.value,
+            images.value,
             viewmodel::toggleWatching,
             viewmodel::updateIssueAttribute,
             viewmodel::startTask,
@@ -88,6 +103,7 @@ fun Issue(
     project: Project?,
     versions: List<Version>,
     watching: Boolean,
+    images: Map<String, ImageBitmap>,
     toggleWatching: () -> Unit,
     updateAttribute: (form: IssueForm) -> Unit,
     startTask: () -> Unit,
@@ -173,16 +189,133 @@ fun Issue(
 
             Spacer(Modifier.height(8.dp))
 
+            var showOriginalText by remember { mutableStateOf(false) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SelectionContainer(modifier = Modifier.weight(1f, fill = true).padding(start = 8.dp)) {
-                    Text(issue.description.trim())
-                }
+                IssueDescription(issue.description.trim(), images, showOriginalText, modifier = Modifier.weight(1f, fill = true))
                 IssueSidebar(issue, project, versions, updateAttribute, downloadFile)
+            }
+
+            Box(Modifier.fillMaxWidth()) {
+                FilledIconToggleButton(checked = showOriginalText, onCheckedChange = { showOriginalText = !showOriginalText }, modifier = Modifier.align(Alignment.CenterEnd)) {
+                    Icon(painterResource(Res.drawable.code_xml_24px), contentDescription = null)
+                }
             }
 
             HorizontalDivider()
             Text("Comentarios: ", style = MaterialTheme.typography.titleSmall)
             issue.journals.forEach { Journal(it) }
+        }
+    }
+}
+
+@Composable
+fun IssueDescription(
+    description: String,
+    images: Map<String, ImageBitmap>,
+    showOriginalText: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val parseTest = parseBlocks(description.split("\n"))
+    val annotatedString = buildAnnotatedString {
+        parseTest.forEach { block ->
+            when (block) {
+                is Block.Paragraph -> {
+//                    withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+//                        append("Paragraph")
+//                    }
+                    block.items.forEach { append(it) }
+                }
+                is Block.BlockCode -> append("Code: " + block.lines)
+                is Block.BlockQuote -> append("BQ: " + block.items)
+                is Block.Comment -> append("Comment: " + block.lines)
+                is Block.Heading -> append("Heading: " + block.items)
+                is Block.ListBlock.OrderedList,
+                is Block.ListBlock.UnorderedList -> {
+                    block.items.forEach {
+                        append("- ")
+                        append(it.value)
+                        appendLine()
+                    }
+                }
+                is Block.NoTextile -> append("NoTextile: " + block.lines)
+                is Block.Pre -> append("Pre: " + block.lines)
+            }
+            appendLine()
+        }
+    }
+
+    val inlineContent = images.map { imageEntry ->
+        imageEntry.key to InlineTextContent(
+            Placeholder(
+                width = ((imageEntry.value.width.toFloat() / imageEntry.value.height.toFloat()) * 25.em.value).em,
+                height = 25.em,
+                placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+            )
+        ) { Image(imageEntry.value, contentDescription = null, modifier = Modifier.padding(vertical = 4.dp)) }
+    }.toMap()
+
+
+
+    SelectionContainer(modifier = modifier.padding(start = 8.dp)) {
+        if (showOriginalText) {
+            Text(description)
+        } else {
+            Text(annotatedString, inlineContent = inlineContent)
+        }
+    }
+}
+
+private fun AnnotatedString.Builder.append(item: InlineItem) {
+    when (item) {
+        is InlineItem.Abbreviation -> append(item.abbreviation)
+        is InlineItem.Bold -> {
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                item.items.forEach { append(it) }
+            }
+        }
+        is InlineItem.Citation -> {
+            withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                item.items.forEach { append(it) }
+            }
+        }
+        is InlineItem.Code -> {
+            withStyle(SpanStyle(background = Color.LightGray)) {
+                append(item.text)
+            }
+        }
+        is InlineItem.Deletion -> {
+            withStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) {
+                item.items.forEach { append(it) }
+            }
+        }
+        is InlineItem.Image -> {
+            appendInlineContent(item.text, item.text)
+        }
+        is InlineItem.Insertion -> {
+            item.items.forEach { append(it) }
+        }
+        is InlineItem.Italic -> {
+            withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                item.items.forEach { append(it) }
+            }
+        }
+        InlineItem.LineBreak -> appendLine()
+        is InlineItem.Link -> {
+            withLink(LinkAnnotation.Url(item.url)) {
+                append(item.text)
+            }
+        }
+        is InlineItem.Span -> {
+            item.items.forEach { append(it) }
+        }
+        is InlineItem.Subscript -> {
+            item.items.forEach { append(it) }
+        }
+        is InlineItem.Superscript -> {
+            item.items.forEach { append(it) }
+        }
+        is InlineItem.Text -> {
+            append(item.text)
         }
     }
 }

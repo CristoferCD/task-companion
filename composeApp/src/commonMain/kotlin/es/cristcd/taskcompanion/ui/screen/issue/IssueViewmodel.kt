@@ -2,6 +2,8 @@
 
 package es.cristcd.taskcompanion.ui.screen.issue
 
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.core.CachedResult
@@ -15,6 +17,8 @@ import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.select
@@ -22,6 +26,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
 import org.jetbrains.exposed.v1.json.extract
+import org.jetbrains.skia.Image
 import java.awt.Desktop
 import java.io.File
 import java.net.URI
@@ -41,6 +46,8 @@ class IssueViewmodel : ViewModel() {
 
     private val _versions = MutableStateFlow<List<Version>>(emptyList())
     val versions = _versions.asStateFlow()
+
+    val images = issue.filterIsInstance<CachedResult.FromApi<ExtendedIssue>>().map { loadImages(it.issue.attachments) }
 
     init {
         val userId = getUserId()
@@ -201,6 +208,14 @@ class IssueViewmodel : ViewModel() {
             val file = File.createTempFile(filename, extension)
             RedmineService.downloadFile(attachment.contentUrl, file)
             Desktop.getDesktop().open(file)
+        }
+    }
+
+    private suspend fun loadImages(attachments: List<Attachment>): Map<String, ImageBitmap> {
+        return attachments.filter { it.contentType.startsWith("image") }
+        .associate {
+            val bytes = RedmineService.loadImage(it.contentUrl)
+            it.filename to Image.makeFromEncoded(bytes).toComposeImageBitmap()
         }
     }
 }
