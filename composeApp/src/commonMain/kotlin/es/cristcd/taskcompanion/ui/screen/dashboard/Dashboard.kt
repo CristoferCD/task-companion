@@ -27,17 +27,14 @@ import es.cristcd.taskcompanion.ui.common.TaskCard
 import es.cristcd.taskcompanion.ui.common.VersionCard
 import es.cristcd.taskcompanion.ui.screen.projectlist.ProjectList
 import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class, ExperimentalMaterialApi::class)
@@ -59,7 +56,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             var text by remember { mutableStateOf("") }
             SearchBar(
-                modifier = Modifier.width(350.dp),
+                modifier = Modifier.width(350.dp).padding(top = 0.dp, bottom = 8.dp, end = 8.dp),
                 inputField = {
                     OutlinedTextField(
                         value = text,
@@ -79,11 +76,14 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                             unfocusedIndicatorColor = Color.Transparent,
 
                         ),
-                        modifier = Modifier.fillMaxWidth().padding(top = 0.dp, bottom = 8.dp, end = 8.dp).clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.surface)
                     )
                 },
                 expanded = false,
-                onExpandedChange = {}
+                onExpandedChange = {},
+                colors = SearchBarDefaults.colors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+                shape = MaterialTheme.shapes.large,
             ) {}
         }
         Row(
@@ -104,7 +104,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                 contentPadding = PaddingValues(8.dp),
                 verticalItemSpacing = 8.dp,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxHeight().clip(RoundedCornerShape(topStart = 0.dp, topEnd = 16.dp, bottomStart = 0.dp, bottomEnd = 0.dp)).background(MaterialTheme.colorScheme.surface).weight(1f)
+                modifier = Modifier.fillMaxHeight().clip(RoundedCornerShape(topStart = 0.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)).background(MaterialTheme.colorScheme.surface).weight(1f)
             ) {
                 items.value.forEach { group ->
                     when(val content = group.content) {
@@ -188,7 +188,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
             }
 
 
-            Column(modifier = Modifier.fillMaxHeight().width(IntrinsicSize.Min), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(modifier = Modifier.fillMaxHeight().width(IntrinsicSize.Min), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 val selectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                 IconButton(onClick = { sidebarNavigation = sidebarNavigation.toggle(SidebarNavigation.Tracker) }, colors = if (sidebarNavigation == SidebarNavigation.Tracker) IconButtonDefaults.iconButtonColors(containerColor = selectedColor) else IconButtonDefaults.iconButtonColors()) {
                     Icon(painterResource(Res.drawable.assignment_24px), contentDescription = null)

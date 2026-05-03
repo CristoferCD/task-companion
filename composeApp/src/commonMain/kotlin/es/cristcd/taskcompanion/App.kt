@@ -5,7 +5,6 @@ import androidx.compose.foundation.PointerMatcher
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.onClick
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.Composable
@@ -29,6 +28,7 @@ import es.cristcd.taskcompanion.ui.screen.project.ProjectScreen
 import es.cristcd.taskcompanion.ui.screen.settings.Settings
 import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
 import es.cristcd.taskcompanion.ui.screen.version.VersionScreen
+import es.cristcd.taskcompanion.ui.theme.AppTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 import kotlin.reflect.typeOf
@@ -37,7 +37,7 @@ import kotlin.reflect.typeOf
 @Composable
 @Preview
 fun App(navController: NavHostController = rememberNavController()) {
-    MaterialTheme {
+    AppTheme(darkTheme = false) {
         SnackbarControllerProvider { snackbarHostState ->
             Scaffold(
                 snackbarHost = { SnackbarHost(hostState = snackbarHostState) }

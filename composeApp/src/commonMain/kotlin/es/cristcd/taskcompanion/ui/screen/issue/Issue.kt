@@ -352,7 +352,7 @@ fun IssueAttributeTag(label: String, value: String?, dropdownContent: @Composabl
 @OptIn(ExperimentalTime::class)
 @Composable
 fun Journal(journal: Journal) {
-    Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer)) {
+    Box(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceContainer)) {
         Column {
             Row(modifier = Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(journal.user.name ?: "", style = MaterialTheme.typography.labelSmall)
@@ -378,12 +378,12 @@ fun Journal(journal: Journal) {
 fun JournalAttributeChange(modifier: Modifier = Modifier, detail: JournalDetail) {
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text("${detail.property} (${detail.name})", style = MaterialTheme.typography.labelSmall)
-        Badge(containerColor = MaterialTheme.colorScheme.inversePrimary, modifier = Modifier.weight(0.5f, fill = false)) {
-            Text(detail.oldValue.abbreviate(80), style = MaterialTheme.typography.bodySmall)
+        Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixedDim).padding(horizontal = 4.dp, vertical = 2.dp)) {
+            Text(detail.oldValue.abbreviate(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixedVariant)
         }
-        Icon(painterResource(Res.drawable.arrow_right_alt_24px), contentDescription = null)
-        Badge(containerColor = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(0.5f, fill = false)) {
-            Text(detail.newValue.abbreviate(80), style = MaterialTheme.typography.bodySmall)
+        Icon(painterResource(Res.drawable.arrow_right_alt_24px), contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+        Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixed).padding(horizontal = 4.dp, vertical = 2.dp)) {
+            Text(detail.newValue.abbreviate(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixed)
         }
     }
 }
