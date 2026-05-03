@@ -25,6 +25,7 @@ import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.StatusDto
 import es.cristcd.taskcompanion.tracker.form.CategoryForm
 import es.cristcd.taskcompanion.tracker.form.StatusForm
+import es.cristcd.taskcompanion.util.popBackStackIfResumed
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
 
@@ -46,7 +47,7 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
                     Text("Settings")
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.popBackStackIfResumed() }) {
                         Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = null)
                     }
                 }

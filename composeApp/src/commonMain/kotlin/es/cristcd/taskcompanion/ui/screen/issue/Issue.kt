@@ -33,6 +33,7 @@ import es.cristcd.taskcompanion.redmine.model.*
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.PriorityIcon
 import es.cristcd.taskcompanion.ui.common.StatusBadge
+import es.cristcd.taskcompanion.util.popBackStackIfResumed
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
@@ -95,7 +96,7 @@ fun Issue(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.popBackStackIfResumed() }) {
                         Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = null)
                     }
                 },

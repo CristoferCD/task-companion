@@ -20,6 +20,7 @@ import es.cristcd.taskcompanion.redmine.model.Version
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.screen.version.IssueTable
+import es.cristcd.taskcompanion.util.popBackStackIfResumed
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.Res
 import task_companion.composeapp.generated.resources.arrow_back_24px
@@ -46,7 +47,7 @@ fun Project(project: ProjectResult.Ok, navController: NavHostController) {
             TopAppBar(
                 title = { Text(project.project.name) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.popBackStackIfResumed() }) {
                         Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = null)
                     }
                 },

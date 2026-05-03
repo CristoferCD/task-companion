@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
@@ -23,15 +22,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.redmine.model.IssueList
 import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
+import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.redmine.model.SimpleCustomField
 import es.cristcd.taskcompanion.tracker.SettingsCache
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.PriorityIcon
 import es.cristcd.taskcompanion.ui.common.StatusBadge
+import es.cristcd.taskcompanion.util.popBackStackIfResumed
 import es.cristcd.taskcompanion.util.toDefaultFormatString
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.RowChart
@@ -40,11 +40,7 @@ import ir.ehsannarmani.compose_charts.models.BarProperties
 import ir.ehsannarmani.compose_charts.models.Bars
 import ir.ehsannarmani.compose_charts.models.Pie
 import org.jetbrains.compose.resources.painterResource
-import task_companion.composeapp.generated.resources.Res
-import task_companion.composeapp.generated.resources.arrow_back_24px
-import task_companion.composeapp.generated.resources.more_vert_24px
-import task_companion.composeapp.generated.resources.visibility_24px
-import task_companion.composeapp.generated.resources.visibility_off_24px
+import task_companion.composeapp.generated.resources.*
 import kotlin.time.ExperimentalTime
 
 
@@ -97,7 +93,7 @@ fun Version(version: VersionResult.Ok, navController: NavHostController, onFollo
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = { navController.popBackStackIfResumed() }) {
                         Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = null)
                     }
                 },
