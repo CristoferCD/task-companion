@@ -57,11 +57,7 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
             project.value,
             versions.value,
             watching.value,
-            viewmodel::toggleWatching,
-            viewmodel::updateIssueAttribute,
-            viewmodel::startTask,
-            viewmodel::openInBrowser,
-            viewmodel::downloadFile,
+            viewmodel::onAction,
             navController,
             issue.updatedAt,
         )
@@ -70,11 +66,7 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
             project.value,
             versions.value,
             watching.value,
-            viewmodel::toggleWatching,
-            viewmodel::updateIssueAttribute,
-            viewmodel::startTask,
-            viewmodel::openInBrowser,
-            viewmodel::downloadFile,
+            viewmodel::onAction,
             navController,
         )
     }
@@ -88,11 +80,7 @@ fun Issue(
     project: Project?,
     versions: List<Version>,
     watching: Boolean,
-    toggleWatching: () -> Unit,
-    updateAttribute: (form: IssueForm) -> Unit,
-    startTask: () -> Unit,
-    openInBrowser: () -> Unit,
-    downloadFile: (Attachment) -> Unit,
+    onAction: (IssueAction) -> Unit,
     navController: NavHostController,
     valueCachedAt: Instant? = null,
 ) {
@@ -112,7 +100,7 @@ fun Issue(
                     }
                 },
                 actions = {
-                    WatchButton(watching, onClick = toggleWatching)
+                    WatchButton(watching, onClick = {onAction(IssueAction.ToggleWatching)})
                     var expanded by remember { mutableStateOf(false) }
                     Box(
                         modifier = Modifier
@@ -127,13 +115,13 @@ fun Issue(
                         ) {
                             DropdownMenuItem(
                                 text = { Text("Start")},
-                                onClick = { expanded = false; startTask() }
+                                onClick = { expanded = false; onAction(IssueAction.StartTask) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Abrir en navegador") },
                                 onClick = {
                                     expanded = false
-                                    openInBrowser()
+                                    onAction(IssueAction.OpenInBrowser)
                                 }
                             )
                         }
@@ -166,7 +154,7 @@ fun Issue(
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PriorityIcon(issue.priority.name)
-                EditableStatusBadge(issue, onSelection = { updateAttribute(IssueForm(statusId = it.id)) })
+                EditableStatusBadge(issue, onSelection = { onAction(IssueAction.UpdateAttribute(IssueForm(statusId = it.id))) })
                 Text(issue.createdOn?.toLocalDateTime(TimeZone.currentSystemDefault()).toString(), style = MaterialTheme.typography.labelMedium)
                 Text("Creado por: ${issue.author.name}", style = MaterialTheme.typography.labelMedium)
             }
@@ -177,7 +165,13 @@ fun Issue(
                 SelectionContainer(modifier = Modifier.weight(1f, fill = true).padding(start = 8.dp)) {
                     Text(issue.description.trim())
                 }
-                IssueSidebar(issue, project, versions, updateAttribute, downloadFile)
+                IssueSidebar(
+                    issue,
+                    project,
+                    versions,
+                    updateAttribute = { onAction(IssueAction.UpdateAttribute(it)) },
+                    downloadFile = { onAction(IssueAction.DownloadFile(it)) }
+                )
             }
 
             HorizontalDivider()
@@ -273,7 +267,7 @@ fun IssueSidebar(
                             label = {
                                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Icon(painterResource(Res.drawable.file_present_24px), contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
-                                    Text("${it.filename}", style = MaterialTheme.typography.labelSmall)
+                                    Text(it.filename, style = MaterialTheme.typography.labelSmall)
                                 }
                             },
                             onClick = { downloadFile(it)}

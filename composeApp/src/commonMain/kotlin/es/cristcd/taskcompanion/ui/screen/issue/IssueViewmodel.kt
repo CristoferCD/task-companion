@@ -105,6 +105,16 @@ class IssueViewmodel : ViewModel() {
         versions.emit(RedmineService.listOpenProjectVersions(projectId))
     }
 
+    fun onAction(action: IssueAction) {
+        when (action) {
+            is IssueAction.DownloadFile -> downloadFile(action.attachment)
+            IssueAction.OpenInBrowser -> openInBrowser()
+            IssueAction.StartTask -> startTask()
+            IssueAction.ToggleWatching -> toggleWatching()
+            is IssueAction.UpdateAttribute -> updateIssueAttribute(action.form)
+        }
+    }
+
     fun toggleWatching() {
         viewModelScope.launch {
             val issueId = when (val issueResult = issue.value) {
