@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.onClick
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,8 +32,12 @@ import es.cristcd.taskcompanion.ui.screen.settings.Settings
 import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
 import es.cristcd.taskcompanion.ui.screen.version.VersionScreen
 import es.cristcd.taskcompanion.ui.theme.AppTheme
+import es.cristcd.taskcompanion.updater.UpdaterService
+import es.cristcd.taskcompanion.util.toDefaultFormatString
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
+import java.awt.Desktop
+import java.net.URI
 import kotlin.reflect.typeOf
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -42,6 +49,10 @@ fun App(navController: NavHostController = rememberNavController()) {
             Scaffold(
                 snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
             ) {
+                LaunchedEffect(true) {
+                    checkUpdates(snackbarHostState)
+                }
+
                 NavHost(
                     navController = navController,
                     startDestination = Screen.Dashboard,
@@ -74,6 +85,24 @@ fun App(navController: NavHostController = rememberNavController()) {
                     }
 
                 }
+            }
+        }
+    }
+}
+
+private suspend fun checkUpdates(snackbarHostState: SnackbarHostState) {
+    val latestRelease = UpdaterService.latestGithubRelease()
+    if (latestRelease != null) {
+        val updateAvailable = UpdaterService.isUpdateAvailable(latestRelease)
+        if (updateAvailable) {
+            val snackResult = snackbarHostState.showSnackbar(
+                message = "Update available: ${latestRelease.name} (${latestRelease.publishedAt.toDefaultFormatString()})",
+                actionLabel = "Download",
+                withDismissAction = true
+            )
+            when (snackResult) {
+                SnackbarResult.Dismissed -> return
+                SnackbarResult.ActionPerformed -> Desktop.getDesktop().browse(URI(latestRelease.htmlUrl))
             }
         }
     }

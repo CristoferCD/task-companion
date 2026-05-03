@@ -25,9 +25,12 @@ import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.StatusDto
 import es.cristcd.taskcompanion.tracker.form.CategoryForm
 import es.cristcd.taskcompanion.tracker.form.StatusForm
+import es.cristcd.taskcompanion.updater.GithubRelease
 import es.cristcd.taskcompanion.util.popBackStackIfResumed
+import es.cristcd.taskcompanion.util.toDefaultFormatString
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
+import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +42,7 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
         viewmodel.loadStatuses()
         viewmodel.loadRedmineStatuses()
         viewmodel.loadTags()
+        viewmodel.loadAppVersion()
     }
     Scaffold(
         topBar = {
@@ -68,6 +72,9 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
 
             val tags = viewmodel.tags.collectAsState().value
             TagsSettings(tags, viewmodel::createTag, viewmodel::deleteTag)
+
+            val version = viewmodel.appVersion.collectAsState().value
+            VersionSettings(version, viewmodel::downloadNewVersion)
         }
 
     }
@@ -310,7 +317,7 @@ fun StatusesSettings(statuses: List<StatusDto>, redmineStatuses: List<IssueStatu
 @Composable
 fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit, actions: @Composable ColumnScope.() -> Unit) {
     Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Column(modifier = Modifier.widthIn(max = 300.dp).padding(8.dp), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.widthIn(max = 500.dp).padding(8.dp), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = title, style = MaterialTheme.typography.titleSmall)
 
             Column(modifier = Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
@@ -448,6 +455,34 @@ fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (
 }
 
 @Composable
+fun VersionSettings(version: AppVersionResult, onDownload: (GithubRelease) -> Unit) {
+    SettingsSection(
+        "Version",
+        content = {
+            when(version) {
+                is AppVersionResult.LatestInstalled -> Text("Already updated (${version.latestRelease.name}")
+                AppVersionResult.Loading -> Text("Loading...")
+                is AppVersionResult.NoInfo -> Text("Current version: v${version.currentVersion}")
+                is AppVersionResult.UpdateAvailable -> UpdateAvailable(version.currentVersion, version.latestRelease, onDownload)
+            }
+        },
+        actions = {})
+}
+
+@Composable
+fun UpdateAvailable(currentVersion: String, githubRelease: GithubRelease, onDownload: (GithubRelease) -> Unit) {
+    Column {
+        Text("Current version: v$currentVersion")
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Updated version: ${githubRelease.name} (${githubRelease.publishedAt.toDefaultFormatString()})")
+            IconButton(onClick = {onDownload(githubRelease)}) {
+                Icon(painterResource(Res.drawable.deployed_code_update_24px), contentDescription = null)
+            }
+        }
+    }
+}
+
+@Composable
 fun TagDialog(initialValue: NewTagForm?, onConfirm: (NewTagForm) -> Unit, onDismiss: () -> Unit) {
     BasicAlertDialog(onDismissRequest = onDismiss, modifier = Modifier.width(1000.dp)) {
         Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
@@ -507,4 +542,17 @@ fun ColorSelector(initialColor: Long?, onValueChange: (Long) -> Unit) {
 fun RedmineSettingsPreview() {
 //    RedmineSettings(RedmineUserResult.Ok(User(1L, "user", "Nombre", "Apellido", "ccc@abc.com"))) { _, _ -> }
     RedmineSettings(RedmineUserResult.NotLoggedIn, { _, _ -> }, {  })
+}
+
+@Preview
+@Composable
+fun VersionSettingsPreview() {
+    VersionSettings(AppVersionResult.UpdateAvailable(
+        "0.0.4",
+        GithubRelease(
+            "v0.1.3",
+            Clock.System.now(),
+            "localhost"
+        )
+    ), {})
 }

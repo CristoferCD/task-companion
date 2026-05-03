@@ -16,19 +16,20 @@ import es.cristcd.taskcompanion.redmine.model.User
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.StatusDto
-import es.cristcd.taskcompanion.tracker.dto.TaskDto
 import es.cristcd.taskcompanion.tracker.form.CategoryForm
 import es.cristcd.taskcompanion.tracker.form.StatusForm
-import es.cristcd.taskcompanion.ui.screen.dashboard.DashboardGroup
+import es.cristcd.taskcompanion.updater.GithubRelease
+import es.cristcd.taskcompanion.updater.UpdaterService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.awt.Desktop
+import java.net.URI
 
 class SettingsViewmodel : ViewModel() {
     private val log = KotlinLogging.logger {}
@@ -50,6 +51,9 @@ class SettingsViewmodel : ViewModel() {
 
     val tags: StateFlow<List<TagDto>>
         field = MutableStateFlow(emptyList())
+
+    val appVersion: StateFlow<AppVersionResult>
+        field = MutableStateFlow<AppVersionResult>(AppVersionResult.Loading)
 
     fun loadRedmineInfo() {
         viewModelScope.launch {
@@ -134,6 +138,31 @@ class SettingsViewmodel : ViewModel() {
         viewModelScope.launch {
             tags.emit(IssueService.listTags())
         }
+    }
+
+    fun loadAppVersion() {
+        viewModelScope.launch {
+            val currentVersion = UpdaterService.currentVersion()
+            if (currentVersion == null) {
+                appVersion.emit(AppVersionResult.NoInfo("N/A"))
+                return@launch
+            }
+            val githubRelease = UpdaterService.latestGithubRelease()
+            if (githubRelease == null) {
+                appVersion.emit(AppVersionResult.NoInfo(currentVersion))
+                return@launch
+            }
+
+            if (UpdaterService.isUpdateAvailable(githubRelease)) {
+                appVersion.emit(AppVersionResult.UpdateAvailable(currentVersion, githubRelease))
+            } else {
+                appVersion.emit(AppVersionResult.LatestInstalled(githubRelease))
+            }
+        }
+    }
+
+    fun downloadNewVersion(release: GithubRelease) {
+        Desktop.getDesktop().browse(URI(release.htmlUrl))
     }
 
     fun saveCategory(category: CategoryForm) {
@@ -234,4 +263,11 @@ sealed interface RedmineUserResult {
     data object Loading : RedmineUserResult
     data class Ok(val user: User) : RedmineUserResult
     data object NotLoggedIn : RedmineUserResult
+}
+
+sealed interface AppVersionResult {
+    data object Loading: AppVersionResult
+    data class LatestInstalled(val latestRelease: GithubRelease) : AppVersionResult
+    data class UpdateAvailable(val currentVersion: String, val latestRelease: GithubRelease) : AppVersionResult
+    data class NoInfo(val currentVersion: String): AppVersionResult
 }
