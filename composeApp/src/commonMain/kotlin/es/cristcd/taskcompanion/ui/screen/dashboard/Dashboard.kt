@@ -4,7 +4,10 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
@@ -13,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -51,41 +56,102 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
         }
     }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
-        val items = viewmodel.layoutItems.collectAsStateWithLifecycle()
+        var showSearchDialog by remember { mutableStateOf(false) }
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            var text by remember { mutableStateOf("") }
-            SearchBar(
-                modifier = Modifier.width(350.dp).padding(top = 0.dp, bottom = 8.dp, end = 8.dp),
-                inputField = {
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { text = it },
-                        placeholder = { Text("Search", color = MaterialTheme.colorScheme.onSurface) },
-                        trailingIcon = {
-                            IconButton(onClick = { text.toLongOrNull()?.let { navController.navigate(Screen.Issue(it)) } }) {
-                                Icon(painterResource(Res.drawable.visibility_24px), "")
+        if (showSearchDialog) {
+            BasicAlertDialog(onDismissRequest = { showSearchDialog = false }, modifier = Modifier.width(1000.dp).heightIn(max = 600.dp).padding(48.dp)) {
+                Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
+                    var text by remember { mutableStateOf("") }
+                    var expanded by remember { mutableStateOf(false) }
+                    val focusRequester = remember { FocusRequester() }
+                    val searching = viewmodel.searching.collectAsState()
+                    val searchResults = viewmodel.searchResults.collectAsState()
+                    SearchBar(
+                        modifier = Modifier.width(350.dp).padding(top = 0.dp, bottom = 8.dp, end = 8.dp),
+                        inputField = {
+                            TextField(
+                                value = text,
+                                onValueChange = {
+                                    text = it
+                                    viewmodel.searchQuery(it)
+                                    if (it.isNotEmpty() && !expanded) {
+                                        expanded = true
+                                    }
+                                },
+                                placeholder = { Text(text = "Search...") },
+                                singleLine = true,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    disabledContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                ),
+                                modifier = Modifier.focusRequester(focusRequester),
+                            )
+                        },
+                        expanded = expanded,
+                        onExpandedChange = {
+                            expanded = it
+                            if (!expanded) {
+                                showSearchDialog = false
                             }
                         },
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-
+                        colors = SearchBarDefaults.colors(
+                            containerColor = MaterialTheme.colorScheme.surface,
                         ),
-                    )
-                },
-                expanded = false,
-                onExpandedChange = {},
-                colors = SearchBarDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-                shape = MaterialTheme.shapes.large,
-            ) {}
+                        shape = MaterialTheme.shapes.large,
+                    ) {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(searchResults.value) {
+                                val containerColor = if (it.statusColor != null) Color(it.statusColor).copy(alpha = 0.15f) else ListItemDefaults.containerColor
+                                ListItem(
+                                    colors = ListItemDefaults.colors(containerColor = containerColor),
+                                    overlineContent = { Text(it.redmineId.toString()) },
+                                    headlineContent = { Text(it.subject, style = MaterialTheme.typography.bodyMedium) },
+                                    modifier = Modifier.clickable(onClick = {
+                                        navController.navigate(Screen.Issue(it.redmineId))
+                                        showSearchDialog = false
+                                    })
+                                )
+                            }
+                            if (text.toLongOrNull() != null) {
+                                item {
+                                    ListItem(
+                                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                                        headlineContent = { Text("Ir a $text", style = MaterialTheme.typography.bodyMedium) },
+                                        modifier = Modifier.padding(all = 12.dp)
+                                            .clickable(onClick = {
+                                                navController.navigate(Screen.Issue(text.toLong()))
+                                                showSearchDialog = false
+                                            })
+                                    )
+                                }
+                            }
+                            if (searching.value) {
+                                item {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = MaterialTheme.colorScheme.secondary,
+                                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        )
+                                        Text("Searching...", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    LaunchedEffect(Unit) {
+                        focusRequester.requestFocus()
+                    }
+                }
+            }
         }
+
+
+        val items = viewmodel.layoutItems.collectAsStateWithLifecycle()
         Row(
             modifier = Modifier
                 .safeContentPadding()
@@ -190,6 +256,9 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
 
             Column(modifier = Modifier.fillMaxHeight().width(IntrinsicSize.Min), verticalArrangement = Arrangement.spacedBy(4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 val selectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                IconButton(onClick = { showSearchDialog = true }) {
+                    Icon(painterResource(Res.drawable.search_24px), contentDescription = null)
+                }
                 IconButton(onClick = { sidebarNavigation = sidebarNavigation.toggle(SidebarNavigation.Tracker) }, colors = if (sidebarNavigation == SidebarNavigation.Tracker) IconButtonDefaults.iconButtonColors(containerColor = selectedColor) else IconButtonDefaults.iconButtonColors()) {
                     Icon(painterResource(Res.drawable.assignment_24px), contentDescription = null)
                 }

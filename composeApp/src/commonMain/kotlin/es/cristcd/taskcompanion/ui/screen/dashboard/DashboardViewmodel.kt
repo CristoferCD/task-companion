@@ -11,10 +11,14 @@ import es.cristcd.taskcompanion.persistence.model.DashboardLayout
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.Query
+import es.cristcd.taskcompanion.search.SearchService
+import es.cristcd.taskcompanion.search.dto.SearchResultDto
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import es.cristcd.taskcompanion.ui.screen.version.VersionResult
 import es.cristcd.taskcompanion.ui.screen.version.calculateAnalytics
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -23,6 +27,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -32,6 +37,12 @@ class DashboardViewmodel : ViewModel() {
 
     val availableQueries: StateFlow<List<RedmineQueriesByProject>>
         field = MutableStateFlow(emptyList())
+
+    val searchResults: StateFlow<List<SearchResultDto>>
+        field = MutableStateFlow(emptyList())
+    val searching: StateFlow<Boolean>
+        field = MutableStateFlow(false)
+    private var searchJob: Job? = null
 
     fun load() {
         viewModelScope.launch {
@@ -187,6 +198,25 @@ class DashboardViewmodel : ViewModel() {
     fun updateIssueTags(issue: IssueListItemDto, tags: List<TagDto>) {
         viewModelScope.launch {
             IssueService.updateTags(issue.id, tags)
+        }
+    }
+
+    fun searchQuery(query: String) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            if (query.length < 3) {
+                searchResults.emit(emptyList())
+                return@launch
+            }
+            searching.emit(true)
+            val localResults = SearchService.searchLocally(query)
+            searchResults.emit(localResults)
+
+            delay(500.milliseconds)
+            val apiResults = SearchService.searchRedmine(query)
+            val totalResults = localResults + apiResults.filter { apiValue -> localResults.none { it.redmineId == apiValue.redmineId} }
+            searchResults.emit(totalResults)
+            searching.emit(false)
         }
     }
 }

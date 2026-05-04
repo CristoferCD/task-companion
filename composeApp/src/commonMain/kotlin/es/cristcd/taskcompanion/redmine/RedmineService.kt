@@ -212,6 +212,16 @@ object RedmineService {
         }
     }
 
+    suspend fun search(query: String): List<SearchResult> {
+        return client!!.get("search.json") {
+            parameter("q", query)
+            parameter("scope", "my_project")
+            parameter("titles_only", 1)
+            parameter("issues", 1)
+            parameter("limit", 100)
+        }.body<SearchRoot>().results
+    }
+
     fun clearCredentials() {
         client = null
     }
