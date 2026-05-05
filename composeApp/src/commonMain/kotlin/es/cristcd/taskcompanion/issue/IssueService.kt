@@ -1,5 +1,6 @@
 package es.cristcd.taskcompanion.issue
 
+import es.cristcd.taskcompanion.issue.dto.IssueListDto
 import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
 import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.issue.form.NewTagForm
@@ -17,19 +18,28 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 object IssueService {
 
-    suspend fun listAssignedToMe(): List<IssueListItemDto> {
-        val redmineIssues = RedmineService.listIssuesAssignedToMe().issues
-        return loadFromRedmineInfo(redmineIssues)
+    suspend fun listAssignedToMe(): IssueListDto {
+        val redmineIssueList = RedmineService.listIssuesAssignedToMe()
+        return IssueListDto(
+            loadFromRedmineInfo(redmineIssueList.issues),
+            redmineIssueList.totalCount
+        )
     }
 
-    suspend fun listMonitored(): List<IssueListItemDto> {
-        val redmineIssues = RedmineService.listMonitoredIssues().issues
-        return loadFromRedmineInfo(redmineIssues)
+    suspend fun listMonitored(): IssueListDto {
+        val redmineIssueList = RedmineService.listMonitoredIssues()
+        return IssueListDto(
+            loadFromRedmineInfo(redmineIssueList.issues),
+            redmineIssueList.totalCount
+        )
     }
 
-    suspend fun listByQuery(queryId: Long, projectId: Long?): List<IssueListItemDto> {
-        val redmineIssues = RedmineService.listIssuesByQuery(queryId, projectId).issues
-        return loadFromRedmineInfo(redmineIssues)
+    suspend fun listByQuery(queryId: Long, projectId: Long?): IssueListDto {
+        val redmineIssueList = RedmineService.listIssuesByQuery(queryId, projectId)
+        return IssueListDto(
+            loadFromRedmineInfo(redmineIssueList.issues),
+            redmineIssueList.totalCount
+        )
     }
 
     private fun loadFromRedmineInfo(redmineIssues: List<RedmineIssue>): List<IssueListItemDto> {

@@ -3,6 +3,7 @@ package es.cristcd.taskcompanion.ui.screen.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.issue.IssueService
+import es.cristcd.taskcompanion.issue.dto.IssueListDto
 import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
 import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.persistence.model.Category
@@ -223,7 +224,7 @@ class DashboardViewmodel : ViewModel() {
 
 data class DashboardGroup(val id: Int, val title: String, val content: DashboardGroupContent)
 sealed interface DashboardGroupContent {
-    data class IssueList(val list: List<IssueListItemDto>) : DashboardGroupContent
+    data class IssueList(val list: IssueListDto) : DashboardGroupContent
     data class VersionList(val list: List<VersionResult.Ok>) : DashboardGroupContent
     data class Loading(val item: DashboardItem) : DashboardGroupContent
 }
