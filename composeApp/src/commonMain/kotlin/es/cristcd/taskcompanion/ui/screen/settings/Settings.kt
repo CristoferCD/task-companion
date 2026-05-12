@@ -2,10 +2,16 @@
 
 package es.cristcd.taskcompanion.ui.screen.settings
 
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.layout.AnimatedPane
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
+import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,11 +34,14 @@ import es.cristcd.taskcompanion.tracker.form.StatusForm
 import es.cristcd.taskcompanion.updater.GithubRelease
 import es.cristcd.taskcompanion.util.popBackStackIfResumed
 import es.cristcd.taskcompanion.util.toDefaultFormatString
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
 import kotlin.time.Clock
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = viewModel { SettingsViewmodel() }) {
     LaunchedEffect(true) {
@@ -44,46 +53,75 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
         viewmodel.loadTags()
         viewmodel.loadAppVersion()
     }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("Settings")
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStackIfResumed() }) {
-                        Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = null)
+    val navigator = rememberListDetailPaneScaffoldNavigator<SettingsSection>()
+    val scope = rememberCoroutineScope()
+    SharedTransitionLayout {
+        ListDetailPaneScaffold(
+            directive = navigator.scaffoldDirective,
+            value = navigator.scaffoldValue,
+            listPane = {
+                AnimatedPane {
+                    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = {navController.popBackStackIfResumed() }) {
+                                Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = null)
+                            }
+                            Text("Ajustes", style = MaterialTheme.typography.headlineSmall)
+                        }
+                        Spacer(Modifier.preferredHeight(16.dp))
+                        SettingsSection.entries.forEach { entry ->
+                            val containerColor = if (navigator.currentDestination?.contentKey == entry) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                            ListItem(
+                                headlineContent = { Text(entry.title) },
+                                leadingContent = { Icon(painterResource(entry.icon), contentDescription = "") },
+                                colors = ListItemDefaults.colors().copy(containerColor = containerColor),
+                                modifier = Modifier.clip(MaterialTheme.shapes.medium)
+                                    .clickable(onClick = { scope.launch { navigator.navigateTo(
+                                    ListDetailPaneScaffoldRole.Detail, entry) }})
+                            )
+                        }
                     }
                 }
-            )
-        }
-    ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = innerPadding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding() + 12.dp, start = 12.dp, end = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            val redmineUser = viewmodel.redmineUser.collectAsState().value
-            RedmineSettings(redmineUser, onSave = viewmodel::saveRedmineSettings, viewmodel::logout)
-
-            val categories = viewmodel.categories.collectAsState().value
-            val projects = viewmodel.projects.collectAsState().value
-            CategorySettings(categories, projects, viewmodel::saveCategory, viewmodel::deleteCategory)
-
-            val statuses = viewmodel.statuses.collectAsState().value
-            val redmineStatuses = viewmodel.redmineStatuses.collectAsState().value
-            StatusesSettings(statuses, redmineStatuses, viewmodel::saveStatus, viewmodel::deleteStatus, viewmodel::importStatusFromRedmine)
-
-            val tags = viewmodel.tags.collectAsState().value
-            TagsSettings(tags, viewmodel::createTag, viewmodel::deleteTag)
-
-            val version = viewmodel.appVersion.collectAsState().value
-            VersionSettings(version, viewmodel::downloadNewVersion)
-        }
-
+            },
+            detailPane = {
+                AnimatedPane {
+                    Box(modifier = Modifier.fillMaxSize().padding(18.dp)) {
+                        when(navigator.currentDestination?.contentKey) {
+                            SettingsSection.Categories -> {
+                                val categories = viewmodel.categories.collectAsState().value
+                                val projects = viewmodel.projects.collectAsState().value
+                                CategorySettings(categories, projects, viewmodel::saveCategory, viewmodel::deleteCategory)
+                            }
+                            SettingsSection.Redmine -> {
+                                val redmineUser = viewmodel.redmineUser.collectAsState().value
+                                RedmineSettings(redmineUser, onSave = viewmodel::saveRedmineSettings, viewmodel::logout)
+                            }
+                            SettingsSection.Statuses -> {
+                                val statuses = viewmodel.statuses.collectAsState().value
+                                val redmineStatuses = viewmodel.redmineStatuses.collectAsState().value
+                                StatusesSettings(statuses, redmineStatuses, viewmodel::saveStatus, viewmodel::deleteStatus, viewmodel::importStatusFromRedmine)
+                            }
+                            SettingsSection.Tags -> {
+                                val tags = viewmodel.tags.collectAsState().value
+                                TagsSettings(tags, viewmodel::createTag, viewmodel::deleteTag)
+                            }
+                            SettingsSection.Version -> {
+                                val version = viewmodel.appVersion.collectAsState().value
+                                VersionSettings(version, viewmodel::downloadNewVersion)
+                            }
+                            null -> {}
+                        }
+                    }
+                }
+            }
+        )
     }
 }
 
 @Composable
 fun RedmineSettings(redmineUser: RedmineUserResult, onSave: (url: String, key: String) -> Unit, onLogout: () -> Unit) {
     Column(modifier = Modifier.widthIn(max = 300.dp), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = "Redmine", style = MaterialTheme.typography.titleSmall)
+        Text(text = "Redmine", style = MaterialTheme.typography.headlineSmall)
 
         when (redmineUser) {
             is RedmineUserResult.Loading -> Text(text = "Loading...")
@@ -102,7 +140,7 @@ fun CategorySettings(categories: List<CategoryDto>, projects: List<Project>, onN
     SettingsSection(
         "Categories",
         content = {
-            categories.forEach { category ->
+            categories.forEachIndexed { idx, category ->
                 ListItem(
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     headlineContent = { Text(category.name) },
@@ -120,6 +158,9 @@ fun CategorySettings(categories: List<CategoryDto>, projects: List<Project>, onN
                         }
                     }
                 )
+                if (idx != (categories.size - 1)) {
+                    HorizontalDivider(Modifier.padding(0.dp))
+                }
             }
         },
         actions = {
@@ -316,16 +357,14 @@ fun StatusesSettings(statuses: List<StatusDto>, redmineStatuses: List<IssueStatu
 
 @Composable
 fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit, actions: @Composable ColumnScope.() -> Unit) {
-    Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Column(modifier = Modifier.widthIn(max = 500.dp).padding(8.dp), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(text = title, style = MaterialTheme.typography.titleSmall)
+    Column(modifier = Modifier.widthIn(max = 500.dp).padding(8.dp), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = title, style = MaterialTheme.typography.headlineSmall)
 
-            Column(modifier = Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
-                content()
-            }
-
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+            content()
             actions()
         }
+
     }
 }
 
@@ -536,6 +575,15 @@ fun ColorSelector(initialColor: Long?, onValueChange: (Long) -> Unit) {
         }
     }
 }
+
+enum class SettingsSection(val title: String, val icon: DrawableResource) {
+    Redmine("Redmine", Res.drawable.account_circle_24px),
+    Categories("Categories", Res.drawable.category_24px),
+    Statuses("Statuses", Res.drawable.app_badging_24px),
+    Tags("Tags", Res.drawable.bookmarks_24px),
+    Version("Version", Res.drawable.deployed_code_24px),
+}
+
 
 @Preview
 @Composable

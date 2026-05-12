@@ -121,6 +121,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                                         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                                         headlineContent = { Text("Ir a $text", style = MaterialTheme.typography.bodyMedium) },
                                         modifier = Modifier.padding(all = 12.dp)
+                                            .clip(MaterialTheme.shapes.medium)
                                             .clickable(onClick = {
                                                 navController.navigate(Screen.Issue(text.toLong()))
                                                 showSearchDialog = false
