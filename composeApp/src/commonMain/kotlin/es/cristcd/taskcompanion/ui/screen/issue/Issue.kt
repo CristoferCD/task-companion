@@ -51,6 +51,7 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
     val state = viewmodel.issue.collectAsState()
     val project = viewmodel.project.collectAsState()
     val versions = viewmodel.versions.collectAsState()
+    val scrollState = rememberScrollState()
     when (val issue = state.value) {
         is CachedResult.Loading -> FullscreenLoading()
         is CachedResult.FromDb -> Issue(
@@ -60,6 +61,7 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
             watching.value,
             viewmodel::onAction,
             navController,
+            scrollState,
             issue.updatedAt,
         )
         is CachedResult.FromApi -> Issue(
@@ -69,6 +71,7 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
             watching.value,
             viewmodel::onAction,
             navController,
+            scrollState
         )
     }
 
@@ -83,6 +86,7 @@ fun Issue(
     watching: Boolean,
     onAction: (IssueAction) -> Unit,
     navController: NavHostController,
+    scrollState: ScrollState,
     valueCachedAt: Instant? = null,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -149,7 +153,7 @@ fun Issue(
     ) { innerPadding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding(), bottom = innerPadding.calculateBottomPadding() + 12.dp, start = 12.dp, end = 12.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
