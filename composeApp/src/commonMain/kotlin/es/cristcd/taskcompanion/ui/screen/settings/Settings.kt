@@ -8,9 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.layout.AnimatedPane
-import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
-import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.layout.*
+import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -86,28 +85,29 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
             detailPane = {
                 AnimatedPane {
                     Box(modifier = Modifier.fillMaxSize().padding(18.dp)) {
+                        val showDetailPaneBackButton = !navigator.isExpanded(ListDetailPaneScaffoldRole.List)
                         when(navigator.currentDestination?.contentKey) {
                             SettingsSection.Categories -> {
                                 val categories = viewmodel.categories.collectAsState().value
                                 val projects = viewmodel.projects.collectAsState().value
-                                CategorySettings(categories, projects, viewmodel::saveCategory, viewmodel::deleteCategory)
+                                CategorySettings(categories, projects, viewmodel::saveCategory, viewmodel::deleteCategory, showDetailPaneBackButton, { scope.launch {navigator.navigateBack()} })
                             }
                             SettingsSection.Redmine -> {
                                 val redmineUser = viewmodel.redmineUser.collectAsState().value
-                                RedmineSettings(redmineUser, onSave = viewmodel::saveRedmineSettings, viewmodel::logout)
+                                RedmineSettings(redmineUser, onSave = viewmodel::saveRedmineSettings, viewmodel::logout, showDetailPaneBackButton, { scope.launch {navigator.navigateBack()} })
                             }
                             SettingsSection.Statuses -> {
                                 val statuses = viewmodel.statuses.collectAsState().value
                                 val redmineStatuses = viewmodel.redmineStatuses.collectAsState().value
-                                StatusesSettings(statuses, redmineStatuses, viewmodel::saveStatus, viewmodel::deleteStatus, viewmodel::importStatusFromRedmine)
+                                StatusesSettings(statuses, redmineStatuses, viewmodel::saveStatus, viewmodel::deleteStatus, viewmodel::importStatusFromRedmine, showDetailPaneBackButton, { scope.launch {navigator.navigateBack()} })
                             }
                             SettingsSection.Tags -> {
                                 val tags = viewmodel.tags.collectAsState().value
-                                TagsSettings(tags, viewmodel::createTag, viewmodel::deleteTag)
+                                TagsSettings(tags, viewmodel::createTag, viewmodel::deleteTag, showDetailPaneBackButton, { scope.launch {navigator.navigateBack()} })
                             }
                             SettingsSection.Version -> {
                                 val version = viewmodel.appVersion.collectAsState().value
-                                VersionSettings(version, viewmodel::downloadNewVersion)
+                                VersionSettings(version, viewmodel::downloadNewVersion, showDetailPaneBackButton, { scope.launch {navigator.navigateBack()} })
                             }
                             null -> {}
                         }
@@ -118,10 +118,21 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
     }
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+private fun ThreePaneScaffoldNavigator<*>.isExpanded(role: ThreePaneScaffoldRole) =
+    scaffoldValue[role] == PaneAdaptedValue.Expanded
+
 @Composable
-fun RedmineSettings(redmineUser: RedmineUserResult, onSave: (url: String, key: String) -> Unit, onLogout: () -> Unit) {
+fun RedmineSettings(redmineUser: RedmineUserResult, onSave: (url: String, key: String) -> Unit, onLogout: () -> Unit, showBackButton: Boolean, onBack: () -> Unit) {
     Column(modifier = Modifier.widthIn(max = 300.dp), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = "Redmine", style = MaterialTheme.typography.headlineSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (showBackButton) {
+                IconButton(onClick = onBack) {
+                    Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = null)
+                }
+            }
+            Text(text = "Redmine", style = MaterialTheme.typography.headlineSmall)
+        }
 
         when (redmineUser) {
             is RedmineUserResult.Loading -> Text(text = "Loading...")
@@ -133,7 +144,7 @@ fun RedmineSettings(redmineUser: RedmineUserResult, onSave: (url: String, key: S
 }
 
 @Composable
-fun CategorySettings(categories: List<CategoryDto>, projects: List<Project>, onNewCategory: (CategoryForm) -> Unit, onDelete: (Int) -> Unit) {
+fun CategorySettings(categories: List<CategoryDto>, projects: List<Project>, onNewCategory: (CategoryForm) -> Unit, onDelete: (Int) -> Unit, showBackButton: Boolean, onBack: () -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
     var editingCategory by remember { mutableStateOf<CategoryForm?>(null) }
 
@@ -170,7 +181,9 @@ fun CategorySettings(categories: List<CategoryDto>, projects: List<Project>, onN
             ) {
                 Text(text = "Add", style = MaterialTheme.typography.labelMedium)
             }
-        }
+        },
+        showBackButton = showBackButton,
+        onBack = onBack,
     )
     if (showDialog) {
         CategoryDialog(editingCategory, projects, onConfirm = { form -> onNewCategory(form); showDialog = false}, onDismiss = { showDialog = false })
@@ -299,7 +312,7 @@ fun RedmineProfile(redmineUser: User, onLogout: () -> Unit) {
 
 
 @Composable
-fun StatusesSettings(statuses: List<StatusDto>, redmineStatuses: List<IssueStatus>, onNewStatus: (StatusForm) -> Unit, onDelete: (Int) -> Unit, onImportRedmine: () -> Unit) {
+fun StatusesSettings(statuses: List<StatusDto>, redmineStatuses: List<IssueStatus>, onNewStatus: (StatusForm) -> Unit, onDelete: (Int) -> Unit, onImportRedmine: () -> Unit, showBackButton: Boolean, onBack: () -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
     var editingStatus by remember { mutableStateOf<StatusForm?>(null) }
 
@@ -346,7 +359,9 @@ fun StatusesSettings(statuses: List<StatusDto>, redmineStatuses: List<IssueStatu
                     Text(text = "Add", style = MaterialTheme.typography.labelMedium)
                 }
             }
-        }
+        },
+        showBackButton = showBackButton,
+        onBack = onBack,
     )
 
     if (showDialog) {
@@ -356,9 +371,17 @@ fun StatusesSettings(statuses: List<StatusDto>, redmineStatuses: List<IssueStatu
 }
 
 @Composable
-fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit, actions: @Composable ColumnScope.() -> Unit) {
+fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit, actions: @Composable ColumnScope.() -> Unit,  showBackButton: Boolean, onBack: () -> Unit) {
     Column(modifier = Modifier.widthIn(max = 500.dp).padding(8.dp), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = title, style = MaterialTheme.typography.headlineSmall)
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (showBackButton) {
+                IconButton(onClick = onBack) {
+                    Icon(painterResource(Res.drawable.arrow_back_24px), contentDescription = null)
+                }
+            }
+            Text(text = title, style = MaterialTheme.typography.headlineSmall)
+        }
 
         Column(modifier = Modifier.verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
             content()
@@ -442,7 +465,7 @@ fun StatusDialog(initialValue: StatusForm?, redmineStatuses: List<IssueStatus>, 
 }
 
 @Composable
-fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (Int) -> Unit) {
+fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (Int) -> Unit, showBackButton: Boolean, onBack: () -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
     var editingTag by remember { mutableStateOf<NewTagForm?>(null) }
 
@@ -484,7 +507,9 @@ fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (
                     Text(text = "Add", style = MaterialTheme.typography.labelMedium)
                 }
             }
-        }
+        },
+        showBackButton = showBackButton,
+        onBack = onBack,
     )
 
     if (showDialog) {
@@ -494,7 +519,7 @@ fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (
 }
 
 @Composable
-fun VersionSettings(version: AppVersionResult, onDownload: (GithubRelease) -> Unit) {
+fun VersionSettings(version: AppVersionResult, onDownload: (GithubRelease) -> Unit,  showBackButton: Boolean, onBack: () -> Unit) {
     SettingsSection(
         "Version",
         content = {
@@ -505,7 +530,9 @@ fun VersionSettings(version: AppVersionResult, onDownload: (GithubRelease) -> Un
                 is AppVersionResult.UpdateAvailable -> UpdateAvailable(version.currentVersion, version.latestRelease, onDownload)
             }
         },
-        actions = {})
+        actions = {},
+        showBackButton = showBackButton,
+        onBack = onBack,)
 }
 
 @Composable
@@ -589,7 +616,7 @@ enum class SettingsSection(val title: String, val icon: DrawableResource) {
 @Composable
 fun RedmineSettingsPreview() {
 //    RedmineSettings(RedmineUserResult.Ok(User(1L, "user", "Nombre", "Apellido", "ccc@abc.com"))) { _, _ -> }
-    RedmineSettings(RedmineUserResult.NotLoggedIn, { _, _ -> }, {  })
+    RedmineSettings(RedmineUserResult.NotLoggedIn, { _, _ -> }, {  }, false, {})
 }
 
 @Preview
@@ -602,5 +629,5 @@ fun VersionSettingsPreview() {
             Clock.System.now(),
             "localhost"
         )
-    ), {})
+    ), {}, false, {})
 }
