@@ -6,10 +6,15 @@ import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.BadgedBox
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.IconButton
@@ -34,6 +39,7 @@ import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.PriorityIcon
 import es.cristcd.taskcompanion.ui.common.StatusBadge
 import es.cristcd.taskcompanion.util.popBackStackIfResumed
+import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
@@ -90,6 +96,7 @@ fun Issue(
     valueCachedAt: Instant? = null,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scope = rememberCoroutineScope()
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -134,6 +141,27 @@ fun Issue(
                 },
                 scrollBehavior = scrollBehavior,
             )
+        },
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = scrollState.canScrollForward,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
+                BadgedBox(
+                    badge = {
+                        if (issue.journals.isNotEmpty()) {
+                            Badge {
+                                Text(issue.journals.size.toString(), style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+                    }
+                ) {
+                    FloatingActionButton(onClick = { scope.launch { scrollState.animateScrollTo(scrollState.maxValue) } }) {
+                        Icon(painterResource(Res.drawable.arrow_downward_alt_24px), contentDescription = null)
+                    }
+                }
+            }
         },
         bottomBar = {
             if (valueCachedAt != null) {
