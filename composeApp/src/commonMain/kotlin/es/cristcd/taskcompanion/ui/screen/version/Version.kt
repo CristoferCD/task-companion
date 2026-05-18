@@ -53,7 +53,7 @@ fun VersionScreen(id: Long, navController: NavHostController, viewmodel: Version
 
     val state = viewmodel.version.collectAsState()
     when (val result = state.value) {
-        is VersionResult.Loading -> FullscreenLoading()
+        is VersionResult.Loading -> FullscreenLoading(onCancel = { navController.popBackStackIfResumed() })
         is VersionResult.Ok -> Version(result, navController, viewmodel::toggleFollowVersion)
     }
 }

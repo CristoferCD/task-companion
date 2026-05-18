@@ -53,7 +53,7 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
     val versions = viewmodel.versions.collectAsState()
     val scrollState = rememberScrollState()
     when (val issue = state.value) {
-        is CachedResult.Loading -> FullscreenLoading()
+        is CachedResult.Loading -> FullscreenLoading(onCancel = { navController.popBackStackIfResumed() })
         is CachedResult.FromDb -> Issue(
             issue.issue,
             project.value,

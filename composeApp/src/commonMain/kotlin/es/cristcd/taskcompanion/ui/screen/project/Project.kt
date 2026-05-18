@@ -35,7 +35,7 @@ fun ProjectScreen(projectId: Long, navController: NavHostController, viewmodel: 
 
     val state = viewmodel.version.collectAsState()
     when (val result = state.value) {
-        is ProjectResult.Loading -> FullscreenLoading()
+        is ProjectResult.Loading -> FullscreenLoading(onCancel = { navController.popBackStackIfResumed() })
         is ProjectResult.Ok -> Project(result, navController)
     }
 }
