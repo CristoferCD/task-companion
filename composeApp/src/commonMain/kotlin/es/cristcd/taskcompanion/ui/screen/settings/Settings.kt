@@ -51,6 +51,7 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
         viewmodel.loadRedmineStatuses()
         viewmodel.loadTags()
         viewmodel.loadAppVersion()
+        viewmodel.loadPreferences()
     }
     val navigator = rememberListDetailPaneScaffoldNavigator<SettingsSection>()
     val scope = rememberCoroutineScope()
@@ -110,6 +111,10 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
                                 VersionSettings(version, viewmodel::downloadNewVersion, showDetailPaneBackButton, { scope.launch {navigator.navigateBack()} })
                             }
                             null -> {}
+                            SettingsSection.Interface -> {
+                                val scale = viewmodel.scale.collectAsState().value
+                                InterfaceSettings(scale, viewmodel::updateScale, showDetailPaneBackButton, { scope.launch {navigator.navigateBack()} })
+                            }
                         }
                     }
                 }
@@ -524,7 +529,7 @@ fun VersionSettings(version: AppVersionResult, onDownload: (GithubRelease) -> Un
         "Version",
         content = {
             when(version) {
-                is AppVersionResult.LatestInstalled -> Text("Already updated (${version.latestRelease.name}")
+                is AppVersionResult.LatestInstalled -> Text("Already updated (${version.latestRelease.name})")
                 AppVersionResult.Loading -> Text("Loading...")
                 is AppVersionResult.NoInfo -> Text("Current version: v${version.currentVersion}")
                 is AppVersionResult.UpdateAvailable -> UpdateAvailable(version.currentVersion, version.latestRelease, onDownload)
@@ -546,6 +551,49 @@ fun UpdateAvailable(currentVersion: String, githubRelease: GithubRelease, onDown
             }
         }
     }
+}
+
+@Composable
+fun InterfaceSettings(scale: ScaleSettings, onUpdate: (uiScale: Long, fontScale: Long) -> Unit,  showBackButton: Boolean, onBack: () -> Unit) {
+    var uiScale by remember { mutableStateOf(scale.uiScale) }
+    var fontScale by remember { mutableStateOf(scale.fontScale) }
+    SettingsSection(
+        "Interface",
+        content = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column {
+                    Text("UI:")
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Slider(
+                            value = uiScale.toFloat(),
+                            onValueChange = { uiScale = it.toLong() },
+                            valueRange = 50f .. 300f,
+                            modifier = Modifier.weight(.8f)
+                        )
+                        Text("$uiScale %", softWrap = false)
+                    }
+                }
+                Column {
+                    Text("Font:")
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Slider(
+                            value = fontScale.toFloat(),
+                            onValueChange = { fontScale = it.toLong() },
+                            valueRange = 50f .. 300f,
+                            modifier = Modifier.weight(.8f)
+                        )
+                        Text("$fontScale %")
+                    }
+                }
+            }
+        },
+        actions = {
+            Button(onClick = {onUpdate(uiScale, fontScale)}) {
+                Text("Save")
+            }
+        },
+        showBackButton = showBackButton,
+        onBack = onBack,)
 }
 
 @Composable
@@ -604,6 +652,7 @@ fun ColorSelector(initialColor: Long?, onValueChange: (Long) -> Unit) {
 }
 
 enum class SettingsSection(val title: String, val icon: DrawableResource) {
+    Interface("Interface", Res.drawable.visibility_24px),
     Redmine("Redmine", Res.drawable.account_circle_24px),
     Categories("Categories", Res.drawable.category_24px),
     Statuses("Statuses", Res.drawable.app_badging_24px),

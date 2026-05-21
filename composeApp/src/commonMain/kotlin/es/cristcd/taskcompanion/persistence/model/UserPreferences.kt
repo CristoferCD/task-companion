@@ -6,4 +6,6 @@ object UserPreferences: IntIdTable() {
     val redmineId = long("redmine_id").nullable()
     val redmineUrl = varchar("redmineUrl", length = 512).nullable()
     val apiKey = varchar("apiKey", 64).nullable()
+    val scalePercent = long("scalePercent").nullable()
+    val fontScalePercent = long("fontScalePercent").nullable()
 }

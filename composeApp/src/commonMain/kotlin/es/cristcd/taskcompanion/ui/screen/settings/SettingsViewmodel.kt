@@ -55,6 +55,9 @@ class SettingsViewmodel : ViewModel() {
     val appVersion: StateFlow<AppVersionResult>
         field = MutableStateFlow<AppVersionResult>(AppVersionResult.Loading)
 
+    val scale: StateFlow<ScaleSettings>
+        field = MutableStateFlow(ScaleSettings(0, 0))
+
     fun loadRedmineInfo() {
         viewModelScope.launch {
             //TODO: handle unauthorized
@@ -155,6 +158,20 @@ class SettingsViewmodel : ViewModel() {
         }
     }
 
+    fun loadPreferences() {
+        viewModelScope.launch {
+            transaction {
+                UserPreferences.select(UserPreferences.scalePercent, UserPreferences.fontScalePercent)
+                    .firstOrNull()?.let {
+                        ScaleSettings(
+                            it[UserPreferences.scalePercent] ?: 100,
+                            it[UserPreferences.fontScalePercent] ?: 100
+                        )
+                    }
+            }?.let { scale.emit(it) }
+        }
+    }
+
     fun downloadNewVersion(release: GithubRelease) {
         Desktop.getDesktop().browse(URI(release.htmlUrl))
     }
@@ -250,6 +267,19 @@ class SettingsViewmodel : ViewModel() {
         }
     }
 
+    fun updateScale(uiScale: Long, fontScale: Long) {
+        viewModelScope.launch {
+            transaction {
+                val prefsDB = UserPreferences.selectAll().firstOrNull()
+                UserPreferences.upsert {
+                    prefsDB?.getOrNull(UserPreferences.id)?.let { id -> it[UserPreferences.id] = id }
+                    it[UserPreferences.scalePercent] = uiScale
+                    it[UserPreferences.fontScalePercent] = fontScale
+                }
+            }
+        }
+    }
+
 }
 
 
@@ -265,3 +295,5 @@ sealed interface AppVersionResult {
     data class UpdateAvailable(val currentVersion: String, val latestRelease: GithubRelease) : AppVersionResult
     data class NoInfo(val currentVersion: String): AppVersionResult
 }
+
+data class ScaleSettings(val uiScale: Long, val fontScale: Long)
