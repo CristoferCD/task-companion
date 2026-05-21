@@ -65,7 +65,7 @@ data class Attachment(
     val id: Long,
     val filename: String,
     val filesize: Long,
-    val contentType: String,
+    val contentType: String? = null,
     val description: String,
     val contentUrl: String,
     val author: IdString,
