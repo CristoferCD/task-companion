@@ -71,21 +71,15 @@ class SettingsViewmodel : ViewModel() {
         viewModelScope.launch {
             redmineUser.emit(RedmineUserResult.Loading)
             try {
-                val user = RedmineService.updateCredentials(url, apiKey)
+                val correctUrl = if (!url.endsWith('/')) "$url/" else url
+                val user = RedmineService.updateCredentials(correctUrl, apiKey)
                 transaction {
                     val prefsDB = UserPreferences.selectAll().firstOrNull()
-                    if (prefsDB != null) {
-                        UserPreferences.update({ UserPreferences.id eq prefsDB[UserPreferences.id] }) {
-                            it[UserPreferences.redmineId] = user.id
-                            it[UserPreferences.redmineUrl] = url
-                            it[UserPreferences.apiKey] = apiKey
-                        }
-                    } else {
-                        UserPreferences.insert {
-                            it[UserPreferences.redmineId] = user.id
-                            it[UserPreferences.redmineUrl] = url
-                            it[UserPreferences.apiKey] = apiKey
-                        }
+                    UserPreferences.upsert {
+                        prefsDB?.getOrNull(UserPreferences.id)?.let { id -> it[UserPreferences.id] = id }
+                        it[UserPreferences.redmineId] = user.id
+                        it[UserPreferences.redmineUrl] = correctUrl
+                        it[UserPreferences.apiKey] = apiKey
                     }
                 }
                 redmineUser.emit(RedmineUserResult.Ok(user))

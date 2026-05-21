@@ -27,7 +27,9 @@ import java.io.File
 
 object RedmineService {
     @OptIn(ExperimentalSerializationApi::class)
-    var client: HttpClient? = configureClientFromDB()
+    private var _client: HttpClient? = configureClientFromDB()
+    private val client: HttpClient
+        get() = _client ?: error("RedmineService not initialized")
 
     private fun configureClient(url: String, key: String): HttpClient {
         return HttpClient(CIO) {
@@ -75,7 +77,7 @@ object RedmineService {
     }
 
     suspend fun listIssues(versionId: Long): IssueList {
-        return client!!.get("issues.json") {
+        return client.get("issues.json") {
             url {
                 parameter("fixed_version_id", versionId)
                 parameter("sort", "status")
@@ -85,7 +87,7 @@ object RedmineService {
     }
 
     suspend fun listIssuesAssignedToMe(): IssueList {
-        return client!!.get("issues.json") {
+        return client.get("issues.json") {
             url {
                 parameter("limit", 50)
                 parameter("assigned_to_id", "me")
@@ -95,7 +97,7 @@ object RedmineService {
     }
 
     suspend fun listIssuesByQuery(queryId: Long, projectId: Long?): IssueList {
-        return client!!.get("issues.json") {
+        return client.get("issues.json") {
             parameter("query_id", queryId)
             if (projectId != null) {
                 parameter("project_id", projectId)
@@ -105,7 +107,7 @@ object RedmineService {
     }
 
     suspend fun listIssuesByProject(projectId: Long): IssueList {
-        return client!!.get("issues.json") {
+        return client.get("issues.json") {
             parameter("project_id", projectId)
             parameter("sort", "updated_on:desc")
             parameter("limit", 50)
@@ -113,7 +115,7 @@ object RedmineService {
     }
 
     suspend fun listMonitoredIssues(): IssueList {
-        return client!!.get("issues.json") {
+        return client.get("issues.json") {
             url {
                 parameter("limit", 50)
                 parameter("watcher_id", "me")
@@ -123,7 +125,7 @@ object RedmineService {
     }
 
     suspend fun getIssue(id: Long): ExtendedIssue {
-        return client!!.get("issues/$id.json") {
+        return client.get("issues/$id.json") {
             url {
                 parameter("include", "relations,journals,watchers,allowed_statuses,attachments")
             }
@@ -131,32 +133,32 @@ object RedmineService {
     }
 
     suspend fun getLoggedUser(): User {
-        return client!!.get("my/account.json").body<UserRoot>().user
+        return client.get("my/account.json").body<UserRoot>().user
     }
 
     suspend fun watchIssue(id: Long, userId: Long) {
-        client!!.post("issues/$id/watchers.json") {
+        client.post("issues/$id/watchers.json") {
             parameter("user_id", userId)
         }
     }
 
     suspend fun stopWatchingIssue(id: Long, userId: Long) {
-        client!!.delete("issues/$id/watchers/$userId.json")
+        client.delete("issues/$id/watchers/$userId.json")
     }
 
     suspend fun getVersion(id: Long): Version {
-        return client!!.get("versions/$id.json")
+        return client.get("versions/$id.json")
             .body<VersionRoot>().version
     }
 
     suspend fun listOpenProjectVersions(projectId: Long): List<Version> {
-        return client!!.get("projects/$projectId/versions.json")
+        return client.get("projects/$projectId/versions.json")
             .body<VersionList>().versions.filter { it.status == "open" }
             .sortedBy { it.name }
     }
 
     suspend fun listProjectVersions(projectId: Long): List<Version> {
-        return client!!.get("projects/$projectId/versions.json")
+        return client.get("projects/$projectId/versions.json")
             .body<VersionList>().versions
             .sortedBy { it.name }
     }
@@ -164,29 +166,29 @@ object RedmineService {
     suspend fun updateCredentials(url: String, apiKey: String): User {
         val newClient = configureClient(url, apiKey)
         val user = newClient.get("my/account.json").body<UserRoot>().user
-        client = newClient
+        _client = newClient
         return user
     }
 
     suspend fun getProject(id: Long): Project {
-        return client!!.get("projects/$id.json") {
+        return client.get("projects/$id.json") {
             parameter("include", "trackers,issue_categories,enabled_modules,time_entry_activities,issue_custom_fields")
         }.body<ProjectRoot>().project
     }
 
     suspend fun listProjects(): List<Project> {
-        return client!!.get("projects.json").body<ProjectList>().projects
+        return client.get("projects.json").body<ProjectList>().projects
     }
 
     suspend fun updateIssueAttribute(issueId: Long, form: IssueForm) {
-        client!!.put("issues/$issueId.json") {
+        client.put("issues/$issueId.json") {
             contentType(ContentType.Application.Json)
             setBody(IssueFormRoot(form))
         }
     }
 
     suspend fun listStatus(): List<IssueStatus> {
-        return client!!.get("issue_statuses.json").body<IssueStatusList>().issueStatuses
+        return client.get("issue_statuses.json").body<IssueStatusList>().issueStatuses
     }
 
     suspend fun listAllQueries(): List<Query> {
@@ -194,7 +196,7 @@ object RedmineService {
         val limit = 100
         var offset = 0
         do {
-            val items = client!!.get("queries.json") {
+            val items = client.get("queries.json") {
                 parameter("limit", limit)
                 parameter("offset", offset)
             }.body<QueriesRoot>()
@@ -208,14 +210,14 @@ object RedmineService {
     }
 
     suspend fun downloadFile(downloadUrl: String, output: File) {
-        client!!.prepareGet(downloadUrl).execute { httpResponse ->
+        client.prepareGet(downloadUrl).execute { httpResponse ->
             val channel: ByteReadChannel = httpResponse.body()
             channel.copyAndClose(output.writeChannel())
         }
     }
 
     suspend fun search(query: String): List<SearchResult> {
-        return client!!.get("search.json") {
+        return client.get("search.json") {
             parameter("q", query)
             parameter("scope", "my_project")
             parameter("titles_only", 1)
@@ -225,6 +227,6 @@ object RedmineService {
     }
 
     fun clearCredentials() {
-        client = null
+        _client = null
     }
 }
