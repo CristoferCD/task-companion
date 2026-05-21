@@ -152,11 +152,13 @@ object RedmineService {
     suspend fun listOpenProjectVersions(projectId: Long): List<Version> {
         return client!!.get("projects/$projectId/versions.json")
             .body<VersionList>().versions.filter { it.status == "open" }
+            .sortedBy { it.name }
     }
 
     suspend fun listProjectVersions(projectId: Long): List<Version> {
         return client!!.get("projects/$projectId/versions.json")
             .body<VersionList>().versions
+            .sortedBy { it.name }
     }
 
     suspend fun updateCredentials(url: String, apiKey: String): User {
