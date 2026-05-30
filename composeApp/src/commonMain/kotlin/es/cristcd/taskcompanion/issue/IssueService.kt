@@ -13,6 +13,7 @@ import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
@@ -43,29 +44,65 @@ object IssueService {
     }
 
     private fun loadFromRedmineInfo(redmineIssues: List<RedmineIssue>): List<IssueListItemDto> {
+        updateIssuesFromRedmine(redmineIssues)
         val redmineIds = redmineIssues.map { it.id }
-        val tags = listTagsByIssue(redmineIds)
+        val tagsInDb = listTagsByIssue(redmineIds)
+        val mergedTags = updateTagsWithExtracted(tagsInDb, redmineIssues)
         val changedIssues = listChangedIssues(redmineIssues)
 
-        updateIssuesFromRedmine(redmineIssues)
 
         return redmineIssues.map {
 
-            val detectedTags = extractTagsFromTitle(it.subject)
+            val tagInfo = mergedTags.find { mt -> mt.redmineId == it.id } ?: error("Error extracting tags from title")
 
             IssueListItemDto(
                 id = it.id,
                 project = it.project,
                 status = it.status,
                 priority = it.priority,
-                subject = detectedTags.first,
+                subject = tagInfo.cleanTitle,
                 updatedOn = it.updatedOn,
                 fixedVersion = it.fixedVersion,
                 recentlyChanged = changedIssues.contains(it.id),
-                (tags[it.id] ?: emptyList()) + detectedTags.second,
+                tagInfo.tags,
             )
         }
     }
+
+    private fun updateTagsWithExtracted(tagsInDb: Map<Long, List<TagDto>>, redmineIssues: List<RedmineIssue>): List<ExtractedTitleInfo> {
+        return redmineIssues.map { redmineIssue ->
+            val (cleanTitle, detectedTags) = extractTagsFromTitle(redmineIssue.subject)
+            val existingTags = tagsInDb[redmineIssue.id] ?: emptyList()
+
+            val newTags = detectedTags.filter { existingTags.none { et -> et.name.equals(it.name, ignoreCase = true) } }
+            transaction {
+                newTags.forEach { tag ->
+
+                    val tagInDbByName = Tag.selectAll()
+                        .where { Tag.name.lowerCase() eq tag.name.lowercase() }
+                        .singleOrNull()
+
+                    val tagId = tagInDbByName?.get(Tag.id) ?: Tag.insertReturning {
+                        it[Tag.name] = tag.name
+                        it[Tag.color] = tag.color ?: 0x00000000
+                    }.single()[Tag.id]
+
+                    val issueId = Issue.select(Issue.id)
+                        .where { Issue.redmineId eq redmineIssue.id }
+                        .firstOrNull()?.let { it[Issue.id].value } ?: error("Issue ${redmineIssue.id} not found")
+
+                    IssueTag.insert {
+                        it[IssueTag.issue] = issueId
+                        it[IssueTag.tag] = tagId
+                    }
+                }
+            }
+
+            ExtractedTitleInfo(redmineIssue.id, cleanTitle, (existingTags + newTags).sortedBy { it.name })
+        }
+    }
+
+    private data class ExtractedTitleInfo(val redmineId: Long, val cleanTitle: String, val tags: List<TagDto>)
 
     private fun extractTagsFromTitle(subject: String): Pair<String, List<TagDto>> {
         val tags = mutableListOf<TagDto>()
@@ -140,7 +177,8 @@ object IssueService {
 
     fun listTags(): List<TagDto> {
         return transaction {
-            Tag.selectAll().map { TagDto(it[Tag.id].value, it[Tag.name], it[Tag.color]) }
+            Tag.selectAll().orderBy(Tag.name)
+                .map { TagDto(it[Tag.id].value, it[Tag.name], it[Tag.color]) }
         }
     }
 

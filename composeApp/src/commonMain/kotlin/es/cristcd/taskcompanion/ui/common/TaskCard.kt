@@ -8,12 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -29,12 +24,8 @@ import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.redmine.model.IdString
 import es.cristcd.taskcompanion.tracker.SettingsCache
 import es.cristcd.taskcompanion.ui.screen.issue.abbreviate
-import es.cristcd.taskcompanion.util.toDefaultFormatString
-import es.cristcd.taskcompanion.util.toRelativeHumanReadableString
-import org.intellij.lang.annotations.JdkConstants
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
-import kotlin.collections.get
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -141,12 +132,7 @@ private fun IssueTags(tags: List<TagDto>, modifier: Modifier = Modifier) {
                             drawRect(
                                 color = Color(tag.color),
                                 topLeft = Offset(0f, 0f),
-                                size = Size(3.dp.toPx(), size.height)
-                            )
-                            drawRect(
-                                color = Color(tag.color),
-                                topLeft = Offset(size.width - 3.dp.toPx(), 0f),
-                                size = Size(3.dp.toPx(), size.height)
+                                size = Size(4.dp.toPx(), size.height)
                             )
                         }
                     }
