@@ -10,9 +10,7 @@ plugins {
 }
 
 kotlin {
-    java {
-        toolchain.languageVersion.set(JavaLanguageVersion.of(25))
-    }
+    jvmToolchain(25)
     jvm()
     compilerOptions {
         freeCompilerArgs.add("-Xexplicit-backing-fields")

@@ -121,7 +121,6 @@ class DashboardViewmodel : ViewModel() {
             transaction {
                 DashboardLayout.deleteWhere { DashboardLayout.id eq groupId }
             }
-            loadLayout()
         }
     }
 
@@ -129,6 +128,17 @@ class DashboardViewmodel : ViewModel() {
         transaction {
             DashboardLayout.update({ DashboardLayout.id eq groupId }) {
                 it[DashboardLayout.title] = name
+            }
+        }
+        viewModelScope.launch {
+            layoutItems.update { items ->
+                items.map {
+                    if (it.id == groupId) {
+                        it.copy(title = name)
+                    } else {
+                        it
+                    }
+                }
             }
         }
     }
