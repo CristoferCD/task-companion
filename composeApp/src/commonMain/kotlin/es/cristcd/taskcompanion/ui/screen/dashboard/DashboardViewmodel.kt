@@ -35,6 +35,7 @@ import kotlin.time.ExperimentalTime
 class DashboardViewmodel : ViewModel() {
     val layoutItems: StateFlow<List<DashboardGroup>>
         field = MutableStateFlow(emptyList())
+    private var reloadingJob: Job? = null
 
     val availableQueries: StateFlow<List<RedmineQueriesByProject>>
         field = MutableStateFlow(emptyList())
@@ -122,6 +123,15 @@ class DashboardViewmodel : ViewModel() {
                         it
                     }
                 }
+            }
+        }
+    }
+
+    fun reloadAll() {
+        reloadingJob?.cancel()
+        reloadingJob = viewModelScope.launch {
+            layoutItems.value.forEach {
+                reloadGroup(it.id)
             }
         }
     }

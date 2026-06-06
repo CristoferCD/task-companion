@@ -21,6 +21,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import es.cristcd.taskcompanion.events.ShortcutEvent
+import es.cristcd.taskcompanion.events.ShortcutEventBus
 import es.cristcd.taskcompanion.persistence.model.DashboardItem
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.TaskCard
@@ -28,6 +30,7 @@ import es.cristcd.taskcompanion.ui.common.VersionCard
 import es.cristcd.taskcompanion.ui.screen.projectlist.ProjectList
 import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -47,6 +50,15 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
             while (isActive) {
                 viewmodel.load()
                 delay(5.minutes)
+            }
+        }
+    }
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            ShortcutEventBus.events.collectLatest { event ->
+                if (event is ShortcutEvent.Refresh) {
+                    viewmodel.reloadAll()
+                }
             }
         }
     }
