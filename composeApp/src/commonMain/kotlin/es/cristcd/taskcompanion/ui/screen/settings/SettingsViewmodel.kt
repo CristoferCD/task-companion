@@ -86,6 +86,7 @@ class SettingsViewmodel : ViewModel() {
                         it[UserPreferences.apiKey] = apiKey
                     }
                 }
+                importStatusFromRedmineAfterFirstLogin()
                 redmineUser.emit(RedmineUserResult.Ok(user))
             } catch (e: Exception) {
                 log.error(e) { "Failed to save redmine settings" }
@@ -229,7 +230,18 @@ class SettingsViewmodel : ViewModel() {
         }
     }
 
-    //TODO: invalidate SettingsCache
+    private fun importStatusFromRedmineAfterFirstLogin() {
+        val anyStatusSaved = transaction {
+            Status.select(Status.id)
+                .limit(1)
+                .any()
+        }
+
+        if (!anyStatusSaved) {
+            importStatusFromRedmine()
+        }
+    }
+
     fun importStatusFromRedmine() {
         val palette = listOf(
             0xffffb7ff,
