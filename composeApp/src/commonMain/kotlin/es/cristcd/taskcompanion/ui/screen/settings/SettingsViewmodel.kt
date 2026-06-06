@@ -57,7 +57,7 @@ class SettingsViewmodel : ViewModel() {
         field = MutableStateFlow<AppVersionResult>(AppVersionResult.Loading)
 
     val scale: StateFlow<ScaleSettings>
-        field = MutableStateFlow(ScaleSettings(0, 0))
+        field = MutableStateFlow(ScaleSettings(100, 100))
 
     fun loadRedmineInfo() {
         viewModelScope.launch {
