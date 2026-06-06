@@ -175,7 +175,7 @@ fun FollowButton(following: Boolean, onClick: () -> Unit) {
 fun PieIssuesByStatus(analytics: IssueListAnalytics, showLabels: Boolean = true) {
     val issuePie by remember {
         mutableStateOf(analytics.byStatus.map { (status, count) ->
-            val color = status?.id?.let { SettingsCache.redmineStatusColors[it] } ?: Color.DarkGray
+            val color = status?.id?.let { SettingsCache.getStatusColor(it) } ?: Color.DarkGray
             Pie(label = status?.name, data = count.toDouble() / (analytics.totalIssues.toDouble()), color = color)
         })
     }

@@ -7,7 +7,18 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 object SettingsCache {
-    val redmineStatusColors: Map<Long, Color> by lazy { loadRedmineStatuses() }
+    private var redmineStatusColors: Map<Long, Color>? = null
+
+    fun getStatusColor(statusId: Long?): Color? {
+        if (redmineStatusColors == null) {
+            redmineStatusColors = loadRedmineStatuses()
+        }
+        return redmineStatusColors!![statusId]
+    }
+
+    fun invalidateStatusColorCache() {
+        redmineStatusColors = null
+    }
 
     private fun loadRedmineStatuses(): Map<Long, Color> {
         return transaction {

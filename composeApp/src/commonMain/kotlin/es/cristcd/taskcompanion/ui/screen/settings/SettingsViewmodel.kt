@@ -3,7 +3,6 @@ package es.cristcd.taskcompanion.ui.screen.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.issue.IssueService
-import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.issue.dto.TagInfoDto
 import es.cristcd.taskcompanion.issue.form.NewTagForm
 import es.cristcd.taskcompanion.persistence.model.Category
@@ -14,6 +13,7 @@ import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.IssueStatus
 import es.cristcd.taskcompanion.redmine.model.Project
 import es.cristcd.taskcompanion.redmine.model.User
+import es.cristcd.taskcompanion.tracker.SettingsCache
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.StatusDto
@@ -215,6 +215,7 @@ class SettingsViewmodel : ViewModel() {
                 }
             }
             loadStatuses()
+            SettingsCache.invalidateStatusColorCache()
         }
     }
 
@@ -224,6 +225,7 @@ class SettingsViewmodel : ViewModel() {
                 Status.deleteWhere { Status.id eq statusId }
             }
             loadStatuses()
+            SettingsCache.invalidateStatusColorCache()
         }
     }
 
@@ -251,6 +253,7 @@ class SettingsViewmodel : ViewModel() {
                 }
             }
             loadStatuses()
+            SettingsCache.invalidateStatusColorCache()
         }
     }
 
