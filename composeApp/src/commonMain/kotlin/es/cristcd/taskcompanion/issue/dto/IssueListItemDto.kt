@@ -21,3 +21,11 @@ data class TagDto(
     val name: String,
     val color: Long? = null,
 )
+
+
+data class TagInfoDto(
+    val id: Int,
+    val name: String,
+    val color: Long? = null,
+    val deleted: Boolean
+)

@@ -3,6 +3,7 @@ package es.cristcd.taskcompanion.issue
 import es.cristcd.taskcompanion.issue.dto.IssueListDto
 import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
 import es.cristcd.taskcompanion.issue.dto.TagDto
+import es.cristcd.taskcompanion.issue.dto.TagInfoDto
 import es.cristcd.taskcompanion.issue.form.NewTagForm
 import es.cristcd.taskcompanion.persistence.model.Issue
 import es.cristcd.taskcompanion.persistence.model.IssueTag
@@ -10,10 +11,13 @@ import es.cristcd.taskcompanion.persistence.model.Status
 import es.cristcd.taskcompanion.persistence.model.Tag
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.RedmineIssue
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.lowerCase
+import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
@@ -69,12 +73,12 @@ object IssueService {
         }
     }
 
-    private fun updateTagsWithExtracted(tagsInDb: Map<Long, List<TagDto>>, redmineIssues: List<RedmineIssue>): List<ExtractedTitleInfo> {
+    private fun updateTagsWithExtracted(tagsInDb: Map<Long, List<TagInfo>>, redmineIssues: List<RedmineIssue>): List<ExtractedTitleInfo> {
         return redmineIssues.map { redmineIssue ->
             val (cleanTitle, detectedTags) = extractTagsFromTitle(redmineIssue.subject)
             val existingTags = tagsInDb[redmineIssue.id] ?: emptyList()
 
-            val newTags = detectedTags.filter { existingTags.none { et -> et.name.equals(it.name, ignoreCase = true) } }
+            val newTags = detectedTags.filter { existingTags.none { et -> et.dto.name.equals(it.name, ignoreCase = true) } }
             transaction {
                 newTags.forEach { tag ->
 
@@ -98,7 +102,8 @@ object IssueService {
                 }
             }
 
-            ExtractedTitleInfo(redmineIssue.id, cleanTitle, (existingTags + newTags).sortedBy { it.name })
+            val existingVisibleTags = existingTags.filter { !it.blocked }.mapNotNull(TagInfo::dto)
+            ExtractedTitleInfo(redmineIssue.id, cleanTitle, (existingVisibleTags + newTags).sortedBy { it.name })
         }
     }
 
@@ -164,21 +169,36 @@ object IssueService {
         }
     }
 
-    private fun listTagsByIssue(redmineIds: List<Long>): Map<Long, List<TagDto>> {
+    private fun listTagsByIssue(redmineIds: List<Long>): Map<Long, List<TagInfo>> {
         return transaction {
             IssueTag
                 .innerJoin(Tag)
                 .innerJoin(Issue)
                 .selectAll()
                 .where { Issue.redmineId inList redmineIds }
-                .groupBy({ it[Issue.redmineId]!! }) { TagDto(it[Tag.id].value, it[Tag.name], it[Tag.color]) }
+                .groupBy({ it[Issue.redmineId]!! }) {
+                    TagInfo(
+                        it[IssueTag.blocked] || it[Tag.deleted],
+                        TagDto(it[Tag.id].value, it[Tag.name], it[Tag.color])
+                    )
+                }
         }
     }
 
     fun listTags(): List<TagDto> {
         return transaction {
-            Tag.selectAll().orderBy(Tag.name)
+            Tag.selectAll()
+                .where { Tag.deleted eq false }
+                .orderBy(Tag.name)
                 .map { TagDto(it[Tag.id].value, it[Tag.name], it[Tag.color]) }
+        }
+    }
+
+    fun listTagsIncludingDeleted(): List<TagInfoDto> {
+        return transaction {
+            Tag.selectAll()
+                .orderBy(Tag.name)
+                .map { TagInfoDto(it[Tag.id].value, it[Tag.name], it[Tag.color], it[Tag.deleted]) }
         }
     }
 
@@ -187,18 +207,27 @@ object IssueService {
             val issueId = Issue.select(Issue.id)
                 .where { Issue.redmineId eq redmineId }
                 .firstOrNull()?.let { it[Issue.id].value } ?: error("Issue $redmineId not found")
-            val currentTags = IssueTag.select(IssueTag.tag).where { IssueTag.issue eq issueId }.map { it[IssueTag.tag].value }
+            val currentTags = IssueTag.innerJoin(Tag).select(IssueTag.tag)
+                .where {
+                    (IssueTag.issue eq issueId) and
+                            (IssueTag.blocked eq false) and
+                            (Tag.deleted eq false)
+                }
+                .map { it[IssueTag.tag].value }
             val addedTags = tags.filter { it.id !in currentTags }
             val removedTags = currentTags.filter { current -> current !in tags.map { it.id } }
 
             addedTags.forEach { tag ->
-                IssueTag.insert {
+                IssueTag.upsert(where = {(IssueTag.issue eq issueId) and (IssueTag.tag eq tag.id)}) {
                     it[IssueTag.issue] = issueId
                     it[IssueTag.tag] = tag.id
+                    it[IssueTag.blocked] = false
                 }
             }
             if (removedTags.isNotEmpty()) {
-                IssueTag.deleteWhere { IssueTag.tag inList removedTags }
+                IssueTag.update(where = { IssueTag.tag inList removedTags }) {
+                    it[IssueTag.blocked] = true
+                }
             }
         }
     }
@@ -213,10 +242,22 @@ object IssueService {
         }
     }
 
+    fun restoreTag(tagId: Int) {
+        transaction {
+            Tag.update(where = { Tag.id eq tagId }) {
+                it[Tag.deleted] = false
+            }
+        }
+    }
+
     fun deleteTag(tagId: Int) {
         transaction {
             IssueTag.deleteWhere { IssueTag.tag eq tagId }
-            Tag.deleteWhere { Tag.id eq tagId }
+            Tag.update(where = { Tag.id eq tagId }) {
+                it[Tag.deleted] = true
+            }
         }
     }
 }
+
+private data class TagInfo(val blocked: Boolean, val dto: TagDto)

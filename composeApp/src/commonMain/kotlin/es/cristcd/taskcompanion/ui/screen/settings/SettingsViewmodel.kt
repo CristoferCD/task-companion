@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.issue.IssueService
 import es.cristcd.taskcompanion.issue.dto.TagDto
+import es.cristcd.taskcompanion.issue.dto.TagInfoDto
 import es.cristcd.taskcompanion.issue.form.NewTagForm
 import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.CategoryType
@@ -49,7 +50,7 @@ class SettingsViewmodel : ViewModel() {
     val redmineStatuses: StateFlow<List<IssueStatus>>
         field = MutableStateFlow(emptyList<IssueStatus>())
 
-    val tags: StateFlow<List<TagDto>>
+    val tags: StateFlow<List<TagInfoDto>>
         field = MutableStateFlow(emptyList())
 
     val appVersion: StateFlow<AppVersionResult>
@@ -133,7 +134,7 @@ class SettingsViewmodel : ViewModel() {
 
     fun loadTags() {
         viewModelScope.launch {
-            tags.emit(IssueService.listTags())
+            tags.emit(IssueService.listTagsIncludingDeleted())
         }
     }
 
@@ -256,14 +257,21 @@ class SettingsViewmodel : ViewModel() {
     fun createTag(form: NewTagForm) {
         viewModelScope.launch {
             IssueService.createTag(form)
-            tags.emit(IssueService.listTags())
+            tags.emit(IssueService.listTagsIncludingDeleted())
+        }
+    }
+
+    fun restoreTag(tagId: Int) {
+        viewModelScope.launch {
+            IssueService.restoreTag(tagId)
+            tags.emit(IssueService.listTagsIncludingDeleted())
         }
     }
 
     fun deleteTag(tagId: Int) {
         viewModelScope.launch {
             IssueService.deleteTag(tagId)
-            tags.emit(IssueService.listTags())
+            tags.emit(IssueService.listTagsIncludingDeleted())
         }
     }
 

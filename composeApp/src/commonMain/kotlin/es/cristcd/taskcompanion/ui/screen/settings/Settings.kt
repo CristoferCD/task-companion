@@ -16,11 +16,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.issue.dto.TagDto
+import es.cristcd.taskcompanion.issue.dto.TagInfoDto
 import es.cristcd.taskcompanion.issue.form.NewTagForm
 import es.cristcd.taskcompanion.persistence.model.CategoryType
 import es.cristcd.taskcompanion.redmine.model.IssueStatus
@@ -104,7 +106,7 @@ fun Settings(navController: NavHostController, viewmodel: SettingsViewmodel = vi
                             }
                             SettingsSection.Tags -> {
                                 val tags = viewmodel.tags.collectAsState().value
-                                TagsSettings(tags, viewmodel::createTag, viewmodel::deleteTag, showDetailPaneBackButton, { scope.launch {navigator.navigateBack()} })
+                                TagsSettings(tags, viewmodel::createTag, viewmodel::restoreTag, viewmodel::deleteTag, showDetailPaneBackButton, { scope.launch {navigator.navigateBack()} })
                             }
                             SettingsSection.Version -> {
                                 val version = viewmodel.appVersion.collectAsState().value
@@ -470,7 +472,7 @@ fun StatusDialog(initialValue: StatusForm?, redmineStatuses: List<IssueStatus>, 
 }
 
 @Composable
-fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (Int) -> Unit, showBackButton: Boolean, onBack: () -> Unit) {
+fun TagsSettings(tags: List<TagInfoDto>, onNewTag: (NewTagForm) -> Unit, onRestore: (Int) -> Unit, onDelete: (Int) -> Unit, showBackButton: Boolean, onBack: () -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
     var editingTag by remember { mutableStateOf<NewTagForm?>(null) }
 
@@ -480,7 +482,14 @@ fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (
             tags.forEachIndexed { idx, tag ->
                 ListItem(
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    headlineContent = { Text(tag.name, style = MaterialTheme.typography.bodyMedium) },
+                    headlineContent = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(tag.name, style = MaterialTheme.typography.bodyMedium, textDecoration = if (tag.deleted) TextDecoration.LineThrough else null)
+                            if (tag.deleted) {
+                                Text("(deleted)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    },
                     leadingContent = {
                         if (tag.color != null) {
                             Box(Modifier.padding(end = 8.dp).size(18.dp).clip(CircleShape).background(Color(tag.color)))
@@ -488,11 +497,17 @@ fun TagsSettings(tags: List<TagDto>, onNewTag: (NewTagForm) -> Unit, onDelete: (
                     },
                     trailingContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(0.dp), verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { editingTag = NewTagForm(tag.id, tag.name, tag.color?.let { Color(it).value.toLong() } ?: 0); showDialog = true }) {
-                                Icon(painterResource(Res.drawable.edit_24px), contentDescription = null)
-                            }
-                            IconButton(onClick = { onDelete(tag.id) }) {
-                                Icon(painterResource(Res.drawable.delete_24px), contentDescription = null)
+                            if (tag.deleted) {
+                                IconButton(onClick = { onRestore(tag.id) }) {
+                                    Icon(painterResource(Res.drawable.restore_from_trash_24px), contentDescription = null)
+                                }
+                            } else {
+                                IconButton(onClick = { editingTag = NewTagForm(tag.id, tag.name, tag.color?.let { Color(it).value.toLong() } ?: 0); showDialog = true }) {
+                                    Icon(painterResource(Res.drawable.edit_24px), contentDescription = null)
+                                }
+                                IconButton(onClick = { onDelete(tag.id) }) {
+                                    Icon(painterResource(Res.drawable.delete_24px), contentDescription = null)
+                                }
                             }
                         }
                     }
