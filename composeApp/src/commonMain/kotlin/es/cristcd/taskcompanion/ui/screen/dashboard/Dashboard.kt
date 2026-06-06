@@ -93,7 +93,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                 items.value.forEach { group ->
                     when(val content = group.content) {
                         is DashboardGroupContent.IssueList -> {
-                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list.issues, content.list.total, "No ${group.title.lowercase()}") {
+                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list.issues, content.list.total, "No ${group.title.lowercase()}", group.reloading) {
                                 TaskCard(
                                     issue = it,
                                     newItemAlphaAnimation = alphaAnimation,
@@ -104,7 +104,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                             }
                         }
                         is DashboardGroupContent.VersionList -> {
-                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list, null, "No ${group.title.lowercase()}") {
+                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list, null, "No ${group.title.lowercase()}", group.reloading) {
                                 VersionCard(it.version, it.analytics, onClick = { navController.navigate(Screen.Version(it.version.id)) })
                             }
                         }
@@ -274,7 +274,8 @@ private fun GroupForm(queries: List<RedmineQueriesByProject>, onAdd: (name: Stri
     }
 }
 
-private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload: () -> Unit, onUpdateName: (String) -> Unit, onDelete: () -> Unit, items: List<T>, count: Long?, emptyMessage: String, content: @Composable LazyStaggeredGridItemScope.(T) -> Unit) {
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload: () -> Unit, onUpdateName: (String) -> Unit, onDelete: () -> Unit, items: List<T>, count: Long?, emptyMessage: String, reloading: Boolean, content: @Composable LazyStaggeredGridItemScope.(T) -> Unit) {
     item(span = StaggeredGridItemSpan.FullLine) {
         Row(modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             var editing by remember { mutableStateOf(false) }
@@ -331,6 +332,11 @@ private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload:
             Box(modifier = Modifier.fillMaxWidth().height(80.dp).clip(MaterialTheme.shapes.medium).background(Color(0xFFE6F2FF)), contentAlignment = Alignment.Center) {
                 Text(emptyMessage, style = MaterialTheme.typography.bodyMedium)
             }
+        }
+    }
+    if (reloading) {
+        item(span = StaggeredGridItemSpan.FullLine) {
+            LinearWavyProgressIndicator(modifier = Modifier.padding(horizontal = 24.dp), wavelength = 40.dp, waveSpeed = 10.dp)
         }
     }
     items(items, itemContent = content)

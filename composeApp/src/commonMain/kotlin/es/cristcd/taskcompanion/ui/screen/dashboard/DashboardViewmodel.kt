@@ -92,6 +92,16 @@ class DashboardViewmodel : ViewModel() {
 
     fun reloadGroup(groupId: Int) {
         viewModelScope.launch {
+            layoutItems.update { items ->
+                items.map { group ->
+                    if (group.id == groupId) {
+                        group.copy(reloading = true)
+                    } else {
+                        group
+                    }
+                }
+            }
+
             val layoutItem = transaction {
                 DashboardLayout.selectAll()
                     .where { DashboardLayout.id eq groupId }
@@ -232,7 +242,7 @@ class DashboardViewmodel : ViewModel() {
     }
 }
 
-data class DashboardGroup(val id: Int, val title: String, val content: DashboardGroupContent)
+data class DashboardGroup(val id: Int, val title: String, val content: DashboardGroupContent, val reloading: Boolean = false)
 sealed interface DashboardGroupContent {
     data class IssueList(val list: IssueListDto) : DashboardGroupContent
     data class VersionList(val list: List<VersionResult.Ok>) : DashboardGroupContent
