@@ -141,6 +141,9 @@ class DashboardViewmodel : ViewModel() {
             transaction {
                 DashboardLayout.deleteWhere { DashboardLayout.id eq groupId }
             }
+            layoutItems.update { items ->
+                items.filter { it.id != groupId }
+            }
         }
     }
 
