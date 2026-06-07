@@ -64,13 +64,15 @@ compose.desktop {
         mainClass = "es.cristcd.taskcompanion.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Dmg)
             //suggestRuntimeModules task
             modules("java.instrument", "java.management", "java.sql", "java.naming", "jdk.unsupported")
             packageName = "es.cristcd.taskcompanion"
-            packageVersion = "0.3.0"
+            packageVersion = "0.4.0"
 
             windows {
+                shortcut = true
+                menuGroup = "TaskCompanion"
                 dirChooser = true
                 perUserInstall = true
                 upgradeUuid = "7f4ce14d-1896-4550-87ed-29b333793066"
