@@ -68,7 +68,7 @@ compose.desktop {
             //suggestRuntimeModules task
             modules("java.instrument", "java.management", "java.sql", "java.naming", "jdk.unsupported")
             packageName = "es.cristcd.taskcompanion"
-            packageVersion = "0.4.0"
+            packageVersion = "0.4.2"
 
             windows {
                 shortcut = true
