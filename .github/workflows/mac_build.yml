@@ -33,6 +33,13 @@ jobs:
       - name: Build package
         run: ./gradlew packageDistributionForCurrentOS
 
+      - name: Upload compose logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-logs
+          path: composeApp/build/compose/logs/
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
