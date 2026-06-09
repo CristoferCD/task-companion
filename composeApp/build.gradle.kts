@@ -78,7 +78,7 @@ compose.desktop {
                 upgradeUuid = "7f4ce14d-1896-4550-87ed-29b333793066"
             }
             macOS {
-                dmgPackageVersion = "1.4.2"
+                packageVersion = "1.4.2"
             }
         }
     }
