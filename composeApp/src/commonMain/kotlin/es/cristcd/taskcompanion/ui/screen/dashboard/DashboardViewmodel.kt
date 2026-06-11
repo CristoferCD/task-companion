@@ -18,6 +18,7 @@ import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import es.cristcd.taskcompanion.ui.screen.version.VersionResult
 import es.cristcd.taskcompanion.ui.screen.version.calculateAnalytics
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,9 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 class DashboardViewmodel : ViewModel() {
+
+    private val log = KotlinLogging.logger {  }
+
     val layoutItems: StateFlow<List<DashboardGroup>>
         field = MutableStateFlow(emptyList())
     private var reloadingJob: Job? = null
@@ -83,11 +87,16 @@ class DashboardViewmodel : ViewModel() {
     }
 
     private suspend fun loadItems(dashboardItem: DashboardItem): DashboardGroupContent {
-        return when(dashboardItem) {
-            DashboardItem.AssignedToMe -> DashboardGroupContent.IssueList(IssueService.listAssignedToMe())
-            is DashboardItem.CustomQuery -> DashboardGroupContent.IssueList(IssueService.listByQuery(dashboardItem.queryId, dashboardItem.projectId))
-            DashboardItem.Monitored -> DashboardGroupContent.IssueList(IssueService.listMonitored())
-            DashboardItem.FollowedVersions -> DashboardGroupContent.VersionList(listFollowedVersions())
+        return try {
+            when(dashboardItem) {
+                DashboardItem.AssignedToMe -> DashboardGroupContent.IssueList(IssueService.listAssignedToMe())
+                is DashboardItem.CustomQuery -> DashboardGroupContent.IssueList(IssueService.listByQuery(dashboardItem.queryId, dashboardItem.projectId))
+                DashboardItem.Monitored -> DashboardGroupContent.IssueList(IssueService.listMonitored())
+                DashboardItem.FollowedVersions -> DashboardGroupContent.VersionList(listFollowedVersions())
+            }
+        } catch (e: Exception) {
+            log.error(e) {}
+            DashboardGroupContent.Error(e.localizedMessage ?: "Error loading items")
         }
     }
 
@@ -260,6 +269,7 @@ sealed interface DashboardGroupContent {
     data class IssueList(val list: IssueListDto) : DashboardGroupContent
     data class VersionList(val list: List<VersionResult.Ok>) : DashboardGroupContent
     data class Loading(val item: DashboardItem) : DashboardGroupContent
+    data class Error(val message: String) : DashboardGroupContent
 }
 
 data class RedmineQueriesByProject(val projectName: String, val queries: List<Query>)

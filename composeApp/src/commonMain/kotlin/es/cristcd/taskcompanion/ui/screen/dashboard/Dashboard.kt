@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -132,6 +133,17 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                                         color = MaterialTheme.colorScheme.secondary,
                                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                                     )
+                                }
+                            }
+                        }
+                        is DashboardGroupContent.Error -> {
+                            item(span = StaggeredGridItemSpan.FullLine) {
+                                SectionTitle(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, null)
+                            }
+                            item(span = StaggeredGridItemSpan.FullLine) {
+                                Box(modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(
+                                    MaterialTheme.colorScheme.errorContainer).padding(28.dp), contentAlignment = Alignment.Center) {
+                                    Text(content.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onError)
                                 }
                             }
                         }
@@ -289,55 +301,7 @@ private fun GroupForm(queries: List<RedmineQueriesByProject>, onAdd: (name: Stri
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload: () -> Unit, onUpdateName: (String) -> Unit, onDelete: () -> Unit, items: List<T>, count: Long?, emptyMessage: String, reloading: Boolean, content: @Composable LazyStaggeredGridItemScope.(T) -> Unit) {
     item(span = StaggeredGridItemSpan.FullLine) {
-        Row(modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            var editing by remember { mutableStateOf(false) }
-            if (!editing) {
-
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                if (count != null) {
-                    Badge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                        Text(count.toString())
-                    }
-                }
-                }
-                IconButton(onClick = onReload, modifier = Modifier.size(20.dp)) {
-                    Icon(painterResource(Res.drawable.refresh_24px), null, modifier = Modifier.size(16.dp))
-                }
-                var expanded by remember { mutableStateOf(false) }
-                Box(modifier = Modifier.size(20.dp)) {
-                    IconButton(onClick = { expanded = !expanded }) {
-                        Icon(painterResource(Res.drawable.more_vert_24px), contentDescription = "More options")
-                    }
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Editar nombre") },
-                            onClick = { expanded = false; editing = true }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Eliminar") },
-                            onClick = {
-                                expanded = false
-                                onDelete()
-                            }
-                        )
-                    }
-                }
-            } else {
-                var newName by remember { mutableStateOf(title) }
-                TextField(value = newName, onValueChange = { newName = it })
-                IconButton(onClick = { onUpdateName(newName); editing = false }) {
-                    Icon(painterResource(Res.drawable.save_24px), contentDescription = "More options")
-                }
-                IconButton(onClick = { editing = false }) {
-                    Icon(painterResource(Res.drawable.cancel_24px), contentDescription = null)
-                }
-            }
-        }
+        SectionTitle(title, onReload, onUpdateName, onDelete, count)
     }
     if (items.isEmpty()) {
         item(span = StaggeredGridItemSpan.FullLine) {
@@ -352,4 +316,57 @@ private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload:
         }
     }
     items(items, itemContent = content)
+}
+
+@Composable
+private fun SectionTitle(title: String, onReload: () -> Unit, onUpdateName: (String) -> Unit, onDelete: () -> Unit, count: Long?,) {
+    Row(modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        var editing by remember { mutableStateOf(false) }
+        if (!editing) {
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                if (count != null) {
+                    Badge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
+                        Text(count.toString())
+                    }
+                }
+            }
+            IconButton(onClick = onReload, modifier = Modifier.size(20.dp)) {
+                Icon(painterResource(Res.drawable.refresh_24px), null, modifier = Modifier.size(16.dp))
+            }
+            var expanded by remember { mutableStateOf(false) }
+            Box(modifier = Modifier.size(20.dp)) {
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(painterResource(Res.drawable.more_vert_24px), contentDescription = "More options")
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Editar nombre") },
+                        onClick = { expanded = false; editing = true }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Eliminar") },
+                        onClick = {
+                            expanded = false
+                            onDelete()
+                        }
+                    )
+                }
+            }
+        } else {
+            var newName by remember { mutableStateOf(title) }
+            TextField(value = newName, onValueChange = { newName = it })
+            IconButton(onClick = { onUpdateName(newName); editing = false }) {
+                Icon(painterResource(Res.drawable.save_24px), contentDescription = "More options")
+            }
+            IconButton(onClick = { editing = false }) {
+                Icon(painterResource(Res.drawable.cancel_24px), contentDescription = null)
+            }
+        }
+    }
 }
