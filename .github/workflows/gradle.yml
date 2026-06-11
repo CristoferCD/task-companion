@@ -14,9 +14,9 @@ jobs:
             artifact-name: windows
             package-path: composeApp/build/compose/binaries/main/msi/*.msi
 
-#          - os: macos-latest
-#            artifact-name: macos
-#            package-path: composeApp/build/compose/binaries/main/dmg/*.dmg
+          - os: macos-latest
+            artifact-name: macos
+            package-path: composeApp/build/compose/binaries/main/dmg/*.dmg
 
     runs-on: ${{ matrix.os }}
 
