@@ -15,9 +15,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.lowerCase
-import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
@@ -48,11 +46,12 @@ object IssueService {
     }
 
     private fun loadFromRedmineInfo(redmineIssues: List<RedmineIssue>): List<IssueListItemDto> {
-        updateIssuesFromRedmine(redmineIssues)
         val redmineIds = redmineIssues.map { it.id }
         val tagsInDb = listTagsByIssue(redmineIds)
-        val mergedTags = updateTagsWithExtracted(tagsInDb, redmineIssues)
         val changedIssues = listChangedIssues(redmineIssues)
+
+        updateIssuesFromRedmine(redmineIssues)
+        val mergedTags = updateTagsWithExtracted(tagsInDb, redmineIssues)
 
 
         return redmineIssues.map {

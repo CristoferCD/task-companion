@@ -5,7 +5,6 @@ import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +25,7 @@ import es.cristcd.taskcompanion.tracker.SettingsCache
 import es.cristcd.taskcompanion.ui.screen.issue.abbreviate
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
+import kotlin.math.max
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -91,17 +91,17 @@ fun TaskUpdatedAt(updatedOn: Instant?, recentlyChanged: Boolean, newItemAlphaAni
         modifier = modifier.let {
             if (recentlyChanged) {
                 it.border(2.dp, Color.Red.copy(alpha = newItemAlphaAnimation.value), MaterialTheme.shapes.small)
+                    .background(Color.Red.copy(alpha = max(newItemAlphaAnimation.value - 0.2f, 0f)), shape = MaterialTheme.shapes.small)
                     .padding(horizontal = 6.dp, vertical = 4.dp)
             } else {
                 it
             }
         }) {
         if (recentlyChanged) {
-            Box(modifier = Modifier.clip(CircleShape).background(Color.Red.copy(alpha = newItemAlphaAnimation.value)).size(20.dp), contentAlignment = Alignment.Center) {
-                Icon(painterResource(Res.drawable.notification_important_24px), null, tint = Color.Gray, modifier = Modifier.size(16.dp))
-            }
+            Icon(painterResource(Res.drawable.notification_important_24px), null, tint = Color.Red, modifier = Modifier.size(16.dp))
+        } else {
+            Icon(painterResource(Res.drawable.update_24px), "Updated at", tint = Color.DarkGray, modifier = Modifier.size(16.dp))
         }
-        Icon(painterResource(Res.drawable.update_24px), "Updated at", tint = Color.DarkGray, modifier = Modifier.size(16.dp))
         updatedOn?.let { RelativeTimestamp(it, style = MaterialTheme.typography.bodySmall) }
     }
 }
