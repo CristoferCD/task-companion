@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -281,7 +280,7 @@ private fun GroupForm(queries: List<RedmineQueriesByProject>, onAdd: (name: Stri
                     HorizontalDivider()
                     queryList.forEach { query ->
                         DropdownMenuItem(
-                            text = { Text("${query.name} (${query.id})") },
+                            text = { Text(query.name) },
                             onClick = { onGroupSelection(query.name, DashboardItem.CustomQuery(query.id, query.projectId)) }
                         )
                     }
