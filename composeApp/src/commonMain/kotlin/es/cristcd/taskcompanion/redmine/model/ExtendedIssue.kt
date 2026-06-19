@@ -44,7 +44,7 @@ data class Relation(
     val issueId: Long,
     val issueToId: Long,
     val relationType: RelationType,
-    val delay: String?
+    val delay: Long?
 )
 
 @Serializable

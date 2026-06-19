@@ -10,11 +10,17 @@ import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.RedmineIssue
 import es.cristcd.taskcompanion.persistence.model.UserPreferences
 import es.cristcd.taskcompanion.redmine.RedmineService
-import es.cristcd.taskcompanion.redmine.model.*
+import es.cristcd.taskcompanion.redmine.dto.ExtendedIssueDto
+import es.cristcd.taskcompanion.redmine.model.Attachment
+import es.cristcd.taskcompanion.redmine.model.IssueForm
+import es.cristcd.taskcompanion.redmine.model.Project
+import es.cristcd.taskcompanion.redmine.model.Version
+import es.cristcd.taskcompanion.redmine.toDto
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.select
@@ -30,8 +36,8 @@ import kotlin.time.ExperimentalTime
 
 class IssueViewmodel : ViewModel() {
 
-    val issue: StateFlow<CachedResult<ExtendedIssue>>
-        field = MutableStateFlow<CachedResult<ExtendedIssue>>(CachedResult.Loading)
+    val issue: StateFlow<CachedResult<ExtendedIssueDto>>
+        field = MutableStateFlow<CachedResult<ExtendedIssueDto>>(CachedResult.Loading)
 
     val watching: StateFlow<Boolean>
         field = MutableStateFlow(false)
@@ -96,7 +102,13 @@ class IssueViewmodel : ViewModel() {
                         it[updatedAt] = Clock.System.now()
                     }
                 }
-            ).collect { issue.emit(it) }
+            ).map {
+                when(it) {
+                    is CachedResult.FromApi -> CachedResult.FromApi(it.issue.toDto())
+                    is CachedResult.FromDb -> CachedResult.FromDb(it.issue.toDto(), it.updatedAt)
+                    CachedResult.Loading -> CachedResult.Loading
+                }
+            }.collect { issue.emit(it) }
         }
     }
 

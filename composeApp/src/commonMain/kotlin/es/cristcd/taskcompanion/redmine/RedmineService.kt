@@ -34,7 +34,7 @@ object RedmineService {
     private fun configureClient(url: String, key: String): HttpClient {
         return HttpClient(CIO) {
             install(Logging) {
-                level = LogLevel.ALL
+                level = LogLevel.INFO
             }
             install(ContentNegotiation) {
                 json(Json {
@@ -224,6 +224,17 @@ object RedmineService {
             parameter("issues", 1)
             parameter("limit", 100)
         }.body<SearchRoot>().results
+    }
+
+    suspend fun listPriorities(): List<IssuePriority> {
+        return client.get("enumerations/issue_priorities.json").body<IssuePrioritiesList>().issuePriorities
+    }
+
+    suspend fun listUserMemberships(projectId: Long, offset: Int, limit: Int): MembershipList {
+        return client.get("projects/$projectId/memberships.json") {
+            parameter("limit", limit)
+            parameter("offset", offset)
+        }.body()
     }
 
     fun clearCredentials() {

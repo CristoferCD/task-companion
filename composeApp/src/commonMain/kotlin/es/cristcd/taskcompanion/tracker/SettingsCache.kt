@@ -1,30 +1,31 @@
 package es.cristcd.taskcompanion.tracker
 
-import androidx.compose.ui.graphics.Color
 import es.cristcd.taskcompanion.persistence.model.Status
+import es.cristcd.taskcompanion.tracker.dto.StatusDto
+import es.cristcd.taskcompanion.tracker.dto.toStatusDto
 import org.jetbrains.exposed.v1.core.isNotNull
-import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 object SettingsCache {
-    private var redmineStatusColors: Map<Long, Color>? = null
+    private var redmineStatus: Map<Long, StatusDto>? = null
 
-    fun getStatusColor(statusId: Long?): Color? {
-        if (redmineStatusColors == null) {
-            redmineStatusColors = loadRedmineStatuses()
+    fun getStatus(statusId: Long?): StatusDto? {
+        if (redmineStatus == null) {
+            redmineStatus = loadRedmineStatuses()
         }
-        return redmineStatusColors!![statusId]
+        return redmineStatus!![statusId]
     }
 
     fun invalidateStatusColorCache() {
-        redmineStatusColors = null
+        redmineStatus = null
     }
 
-    private fun loadRedmineStatuses(): Map<Long, Color> {
+    private fun loadRedmineStatuses(): Map<Long, StatusDto> {
         return transaction {
-            Status.select(Status.redmineStatusId, Status.color)
+            Status.selectAll()
                 .where { Status.redmineStatusId.isNotNull() }
-                .associate { it[Status.redmineStatusId]!! to Color(it[Status.color]) }
+                .associate { it[Status.redmineStatusId]!! to it.toStatusDto() }
         }
     }
 }

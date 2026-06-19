@@ -1,16 +1,10 @@
 package es.cristcd.taskcompanion.ui.screen.issue
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -34,6 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.core.CachedResult
+import es.cristcd.taskcompanion.redmine.dto.ExtendedIssueDto
+import es.cristcd.taskcompanion.redmine.dto.JournalDetailDto
+import es.cristcd.taskcompanion.redmine.dto.JournalDto
 import es.cristcd.taskcompanion.redmine.model.*
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.PriorityIcon
@@ -86,7 +83,7 @@ fun IssueScreen(issueId: Long, navController: NavHostController, viewmodel: Issu
 @OptIn(ExperimentalTime::class, ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun Issue(
-    issue: ExtendedIssue,
+    issue: ExtendedIssueDto,
     project: Project?,
     versions: List<Version>,
     watching: Boolean,
@@ -216,7 +213,7 @@ fun Issue(
 
 @Composable
 fun IssueSidebar(
-    issue: ExtendedIssue,
+    issue: ExtendedIssueDto,
     project: Project?,
     versions: List<Version>,
     updateAttribute: (IssueForm) -> Unit,
@@ -345,7 +342,7 @@ fun SidebarItem(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-fun EditableStatusBadge(issue: ExtendedIssue, onSelection: (IssueStatus) -> Unit) {
+fun EditableStatusBadge(issue: ExtendedIssueDto, onSelection: (IssueStatus) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box(Modifier.clickable(onClick = { expanded = true })) {
         DropdownMenu(
@@ -384,7 +381,7 @@ fun IssueAttributeTag(label: String, value: String?, dropdownContent: @Composabl
 
 @OptIn(ExperimentalTime::class)
 @Composable
-fun Journal(journal: Journal) {
+fun Journal(journal: JournalDto) {
     Box(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceContainer)) {
         Column {
             Row(modifier = Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -399,7 +396,7 @@ fun Journal(journal: Journal) {
             if (journal.details.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
                 journal.details.forEach {
-                    JournalAttributeChange(Modifier.padding(horizontal = 12.dp), it)
+                    JournalAttributeChange(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), it)
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -408,15 +405,35 @@ fun Journal(journal: Journal) {
 }
 
 @Composable
-fun JournalAttributeChange(modifier: Modifier = Modifier, detail: JournalDetail) {
+fun JournalAttributeChange(modifier: Modifier = Modifier, detail: JournalDetailDto) {
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("${detail.property} (${detail.name})", style = MaterialTheme.typography.labelSmall)
-        Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixedDim).padding(horizontal = 4.dp, vertical = 2.dp)) {
-            Text(detail.oldValue.abbreviate(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixedVariant)
-        }
-        Icon(painterResource(Res.drawable.arrow_right_alt_24px), contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
-        Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixed).padding(horizontal = 4.dp, vertical = 2.dp)) {
-            Text(detail.newValue.abbreviate(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixed)
+        when (detail) {
+            is JournalDetailDto.AttributeChange -> {
+                Text(detail.name, style = MaterialTheme.typography.labelSmall)
+                Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixedDim).padding(horizontal = 4.dp, vertical = 2.dp)) {
+                    Text(detail.oldValue ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixedVariant)
+                }
+                Icon(painterResource(Res.drawable.arrow_right_alt_24px), contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixed).padding(horizontal = 4.dp, vertical = 2.dp)) {
+                    Text(detail.newValue ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixed)
+                }
+            }
+            is JournalDetailDto.StatusChange -> {
+                Text(detail.name, style = MaterialTheme.typography.labelSmall)
+                StatusBadge(IdString(detail.oldValue?.redmineStatusId, detail.oldValue?.name))
+                Icon(painterResource(Res.drawable.arrow_right_alt_24px), contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                StatusBadge(IdString(detail.newValue?.redmineStatusId, detail.newValue?.name))
+            }
+            is JournalDetailDto.Unknown -> {
+                Text("${detail.property} (${detail.name})", style = MaterialTheme.typography.labelSmall)
+                Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixedDim).padding(horizontal = 4.dp, vertical = 2.dp)) {
+                    Text(detail.oldValue.abbreviate(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixedVariant)
+                }
+                Icon(painterResource(Res.drawable.arrow_right_alt_24px), contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixed).padding(horizontal = 4.dp, vertical = 2.dp)) {
+                    Text(detail.newValue.abbreviate(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixed)
+                }
+            }
         }
     }
 }

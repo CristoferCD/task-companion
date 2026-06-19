@@ -324,7 +324,6 @@ private fun SectionTitle(title: String, onReload: () -> Unit, onUpdateName: (Str
         if (!editing) {
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 if (count != null) {
                     Badge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {

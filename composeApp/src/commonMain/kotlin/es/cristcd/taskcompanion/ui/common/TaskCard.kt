@@ -36,7 +36,7 @@ fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, A
         onClick = onClick,
         shape = MaterialTheme.shapes.small
     ) {
-        val statusColor = SettingsCache.getStatusColor(issue.status.id) ?: Color.DarkGray
+        val statusColor = SettingsCache.getStatus(issue.status.id)?.color ?: Color.DarkGray
         Box(modifier = Modifier.background(statusColor.copy(alpha = 0.08f)).priorityBorder(issue.priority.name).padding(4.dp).height(IntrinsicSize.Min)) {
             var optionsOverlay by remember { mutableStateOf(false) }
             Row(modifier = Modifier.alpha(if (optionsOverlay) 0.0f else 1.0f)) {
@@ -210,7 +210,7 @@ fun priorityColor(priority: String?): Color? {
 
 @Composable
 fun StatusBadge(status: IdString) {
-    val color = SettingsCache.getStatusColor(status.id) ?: Color.DarkGray
+    val color = SettingsCache.getStatus(status.id)?.color ?: Color.DarkGray
     Box(modifier = Modifier.background(color = color, shape = MaterialTheme.shapes.extraSmall), contentAlignment = Alignment.Center) {
         Text(text = status.name ?: "", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
     }
