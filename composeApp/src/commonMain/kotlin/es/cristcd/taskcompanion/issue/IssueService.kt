@@ -1,9 +1,6 @@
 package es.cristcd.taskcompanion.issue
 
-import es.cristcd.taskcompanion.issue.dto.IssueListDto
-import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
-import es.cristcd.taskcompanion.issue.dto.TagDto
-import es.cristcd.taskcompanion.issue.dto.TagInfoDto
+import es.cristcd.taskcompanion.issue.dto.*
 import es.cristcd.taskcompanion.issue.form.NewTagForm
 import es.cristcd.taskcompanion.persistence.model.Issue
 import es.cristcd.taskcompanion.persistence.model.IssueTag
@@ -11,13 +8,12 @@ import es.cristcd.taskcompanion.persistence.model.Status
 import es.cristcd.taskcompanion.persistence.model.Tag
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.RedmineIssue
-import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.inList
-import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 
 object IssueService {
 
@@ -190,6 +186,23 @@ object IssueService {
                 .where { Tag.deleted eq false }
                 .orderBy(Tag.name)
                 .map { TagDto(it[Tag.id].value, it[Tag.name], it[Tag.color]) }
+        }
+    }
+
+    fun getTagRecentUsage(): List<RecentTagUsageDto> {
+        return transaction {
+            val issueCount = Issue.id.count()
+            IssueTag
+                .innerJoin(Tag)
+                .innerJoin(Issue)
+                .select(issueCount, Tag.id)
+                .where {
+                    Issue.updatedOn greaterEq Clock.System.now().minus(1.days)
+                    Tag.deleted eq false
+                    IssueTag.blocked eq false
+                }
+                .groupBy(Tag.id)
+                .map { RecentTagUsageDto(it[Tag.id].value, it[issueCount]) }
         }
     }
 

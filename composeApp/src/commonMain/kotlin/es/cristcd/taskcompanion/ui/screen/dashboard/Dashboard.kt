@@ -5,15 +5,20 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ChipDefaults
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.FilterChip
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -82,6 +87,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
 
 
         val items = viewmodel.layoutItems.collectAsStateWithLifecycle()
+        val tagFilter = viewmodel.tagFilter.collectAsStateWithLifecycle()
         Row(
             modifier = Modifier
                 .safeContentPadding()
@@ -102,10 +108,58 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxHeight().clip(RoundedCornerShape(topStart = 0.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)).background(MaterialTheme.colorScheme.surface).weight(1f)
             ) {
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                        Text("Filtro:", style = MaterialTheme.typography.labelMediumEmphasized)
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f, fill = false)) {
+                            items(tagFilter.value) {
+                                FilterChip(
+                                    it.selected,
+                                    onClick = { viewmodel.toggleTagFilter(it.tag.id) },
+                                    colors = ChipDefaults.outlinedFilterChipColors(),
+                                    border = ChipDefaults.outlinedBorder.let { border ->
+                                        if (it.tag.color != null) {
+                                            val opacity = if (it.selected) 1f else 0.5f
+                                            border.copy(brush = SolidColor(Color(it.tag.color).copy(alpha = opacity)))
+                                        } else {
+                                            border
+                                        }
+                                    },
+                                    shape = MaterialTheme.shapes.medium,
+                                    leadingIcon = {
+                                        if (it.selected) {
+                                            Icon(painterResource(Res.drawable.check_24px), contentDescription = null, Modifier.size(18.dp))
+                                        }
+                                    }
+                                ) {
+                                    Text(it.tag.name, style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                        val filterCount = tagFilter.value.count { it.selected }
+                        BadgedBox(
+                            badge = {
+                                if (filterCount > 0) {
+                                    Badge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
+                                        Text("$filterCount")
+                                    }
+                                }
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            IconButton(onClick = { viewmodel.clearTagFilter() }, enabled = filterCount > 0) {
+                                Icon(painterResource(Res.drawable.delete_24px), contentDescription = "Clear filter")
+                            }
+                        }
+                    }
+                }
                 items.value.forEach { group ->
                     when(val content = group.content) {
                         is DashboardGroupContent.IssueList -> {
-                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list.issues, content.list.total, "No ${group.title.lowercase()}", group.reloading) {
+                            val filteredIssues = content.list.issues.filter { issue ->
+                                tagFilter.value.none { it.selected } || tagFilter.value.any { it.selected && issue.tags.any { issueTag -> issueTag.id == it.tag.id } }
+                            }
+                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, filteredIssues, content.list.total, "No ${group.title.lowercase()}", group.reloading) {
                                 TaskCard(
                                     issue = it,
                                     newItemAlphaAnimation = alphaAnimation,

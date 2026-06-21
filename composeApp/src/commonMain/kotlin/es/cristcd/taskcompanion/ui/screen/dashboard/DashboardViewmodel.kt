@@ -41,6 +41,9 @@ class DashboardViewmodel : ViewModel() {
         field = MutableStateFlow(emptyList())
     private var reloadingJob: Job? = null
 
+    val tagFilter: StateFlow<List<TagFilterChip>>
+        field = MutableStateFlow(emptyList())
+
     val availableQueries: StateFlow<List<RedmineQueriesByProject>>
         field = MutableStateFlow(emptyList())
 
@@ -49,6 +52,12 @@ class DashboardViewmodel : ViewModel() {
     val searching: StateFlow<Boolean>
         field = MutableStateFlow(false)
     private var searchJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            loadTagFilter()
+        }
+    }
 
     fun load() {
         viewModelScope.launch {
@@ -97,6 +106,37 @@ class DashboardViewmodel : ViewModel() {
         } catch (e: Exception) {
             log.error(e) {}
             DashboardGroupContent.Error(e.localizedMessage ?: "Error loading items")
+        }
+    }
+
+    private suspend fun loadTagFilter() {
+        val recentUsage = IssueService.getTagRecentUsage()
+        val tags = IssueService.listTags().map {
+            val priority = recentUsage.find { recent -> recent.tagId == it.id }?.count ?: 0
+            TagFilterChip(it, false, priority)
+        }.sortedByDescending { it.priority }
+        tagFilter.emit(tags)
+    }
+
+    fun toggleTagFilter(tagId: Int) {
+        viewModelScope.launch {
+            tagFilter.update { items ->
+                items.map {
+                    if (it.tag.id == tagId) {
+                        it.copy(selected = !it.selected)
+                    } else {
+                        it
+                    }
+                }
+            }
+        }
+    }
+
+    fun clearTagFilter() {
+        viewModelScope.launch {
+            tagFilter.update { items ->
+                items.map { it.copy(selected = false) }
+            }
         }
     }
 
@@ -287,3 +327,5 @@ sealed interface SidebarNavigation {
         }
     }
 }
+
+data class TagFilterChip(val tag: TagDto, val selected: Boolean, val priority: Long)
