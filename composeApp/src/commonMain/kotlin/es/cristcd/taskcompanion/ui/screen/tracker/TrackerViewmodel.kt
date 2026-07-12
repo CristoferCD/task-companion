@@ -6,17 +6,16 @@ import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.TaskDto
 import es.cristcd.taskcompanion.tracker.form.TaskForm
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalCoroutinesApi::class)
 class TrackerViewmodel : ViewModel() {
-    val tasks: StateFlow<List<TaskDto>>
-        field = MutableStateFlow<List<TaskDto>>(emptyList())
 
     val categories: StateFlow<List<CategoryDto>>
         field = MutableStateFlow(emptyList<CategoryDto>())
@@ -24,10 +23,13 @@ class TrackerViewmodel : ViewModel() {
     val currentDay: StateFlow<LocalDate>
         field = MutableStateFlow(today())
 
+    val tasks: StateFlow<List<TaskDto>> = currentDay.flatMapLatest { TrackerService.observeByDate(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
+
     fun load(day: LocalDate) {
         viewModelScope.launch {
             currentDay.emit(day)
-            tasks.emit(TrackerService.getByDate(day))
+//            tasks.emit(TrackerService.getByDate(day))
             categories.emit(TrackerService.listCategories())
         }
     }
@@ -42,21 +44,18 @@ class TrackerViewmodel : ViewModel() {
     fun resume(task: TaskDto) {
         viewModelScope.launch {
             TrackerService.resume(task.id)
-            load(today())
         }
     }
 
     fun stop(task: TaskDto) {
         viewModelScope.launch {
             TrackerService.stop(task.id)
-            load(today())
         }
     }
 
     fun delete(task: TaskDto) {
         viewModelScope.launch {
             TrackerService.delete(task.id)
-            load(today())
         }
     }
 
@@ -64,13 +63,13 @@ class TrackerViewmodel : ViewModel() {
 
     fun nextDay() {
         viewModelScope.launch {
-            load(currentDay.value.plus(1, DateTimeUnit.DAY))
+            currentDay.update { it.plus(1, DateTimeUnit.DAY) }
         }
     }
 
     fun previousDay() {
         viewModelScope.launch {
-            load(currentDay.value.minus(1, DateTimeUnit.DAY))
+            currentDay.update { it.minus(1, DateTimeUnit.DAY) }
         }
     }
 }

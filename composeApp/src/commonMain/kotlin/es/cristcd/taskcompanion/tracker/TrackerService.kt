@@ -1,10 +1,12 @@
 package es.cristcd.taskcompanion.tracker
 
+import es.cristcd.taskcompanion.persistence.TableObserver
 import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.Status
 import es.cristcd.taskcompanion.persistence.model.Task
 import es.cristcd.taskcompanion.tracker.dto.*
 import es.cristcd.taskcompanion.tracker.form.TaskForm
+import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.*
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
@@ -14,7 +16,10 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 object TrackerService {
-    fun getByDate(date: LocalDate): List<TaskDto> {
+
+    private val taskTableObserver = TableObserver()
+
+    private fun getByDate(date: LocalDate): List<TaskDto> {
         val startDay = date.atStartOfDayIn(TimeZone.currentSystemDefault())
         val endDay = date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(TimeZone.currentSystemDefault())
         return transaction {
@@ -23,6 +28,8 @@ object TrackerService {
                 .map { it.toTaskDto() }
         }
     }
+
+    fun observeByDate(date: LocalDate): Flow<List<TaskDto>> = taskTableObserver.queryAsFlow { getByDate(date) }
 
     fun getFinishedByDate(date: LocalDate): List<TaskDto> {
         val startDay = date.atStartOfDayIn(TimeZone.currentSystemDefault())
@@ -34,7 +41,7 @@ object TrackerService {
     }
 
     fun start(form: TaskForm) {
-        transaction {
+        taskTableObserver.writeTransaction {
             val category = Category.select(Category.id).where { Category.id eq form.categoryId }.single().let { it[Category.id] }
             finalizeLastTask()
             Task.insert {
@@ -47,7 +54,7 @@ object TrackerService {
     }
 
     fun resume(taskId: Int) {
-        transaction {
+        taskTableObserver.writeTransaction {
             val task = Task.selectAll().where { Task.id eq taskId }.single()
             finalizeLastTask()
             Task.insert {
@@ -60,7 +67,7 @@ object TrackerService {
     }
 
     fun stop(taskId: Int) {
-        transaction {
+        taskTableObserver.writeTransaction {
             Task.update(where = { Task.id eq taskId }) {
                 it[Task.end] = Clock.System.now()
             }
@@ -68,13 +75,13 @@ object TrackerService {
     }
 
     fun delete(taskId: Int) {
-        transaction {
+        taskTableObserver.writeTransaction {
             Task.deleteWhere { Task.id eq taskId }
         }
     }
 
     fun finalizeLastTask() {
-        transaction {
+        taskTableObserver.writeTransaction {
             Task.select(Task.id).where { Task.end.isNull() }
                 .firstOrNull()?.let { lastTask ->
                     Task.update({ Task.id eq lastTask[Task.id] }) {
