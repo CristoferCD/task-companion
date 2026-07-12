@@ -74,7 +74,7 @@ fun App(navController: NavHostController = rememberNavController()) {
                     }
                     composable<Screen.Tracker>(typeMap = mapOf(typeOf<LocalDate>() to serializableType<LocalDate>())) {
                         val tracker = it.toRoute<Screen.Tracker>()
-                        Tracker(tracker.day)
+                        Tracker(tracker.day, navController = navController)
                     }
                     composable<Screen.Project> {
                         val project = it.toRoute<Screen.Project>()

@@ -49,6 +49,7 @@ object TrackerService {
                 it[Task.category] = category
                 it[Task.description] = form.description
                 it[Task.start] = Clock.System.now()
+                it[Task.redmineId] = form.redmineId
             }
         }
     }
@@ -62,6 +63,7 @@ object TrackerService {
                 it[Task.category] = task[Task.category]
                 it[Task.description] = task[Task.description]
                 it[Task.start] = Clock.System.now()
+                it[Task.redmineId] = task[Task.redmineId]
             }
         }
     }

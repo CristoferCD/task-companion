@@ -237,7 +237,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                     SidebarNavigation.None -> Unit
                     SidebarNavigation.Tracker -> {
                         Box(modifier = Modifier.width(650.dp).fillMaxHeight()) {
-                            Tracker(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
+                            Tracker(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date, navController = navController)
                         }
                     }
                     SidebarNavigation.Projects -> {

@@ -5,6 +5,7 @@ package es.cristcd.taskcompanion.ui.screen.tracker
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,9 +24,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.tracker.dto.CategoryDto
 import es.cristcd.taskcompanion.tracker.dto.TaskDto
 import es.cristcd.taskcompanion.tracker.form.TaskForm
+import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.SnackbarController
 import kotlinx.datetime.*
 import kotlinx.datetime.format.char
@@ -35,7 +38,11 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Tracker(day: LocalDate, viewmodel: TrackerViewmodel = viewModel { TrackerViewmodel() }) {
+fun Tracker(
+    day: LocalDate,
+    navController: NavHostController,
+    viewmodel: TrackerViewmodel = viewModel { TrackerViewmodel() },
+) {
     LaunchedEffect(day) {
         viewmodel.load(day)
     }
@@ -58,18 +65,30 @@ fun Tracker(day: LocalDate, viewmodel: TrackerViewmodel = viewModel { TrackerVie
             items(tasks.value) { task ->
                 Row(
                     modifier = Modifier.height(IntrinsicSize.Max).fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surface),
+                        .clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surface)
+                        .let {
+                            if (task.redmineId != null) {
+                                it.clickable(enabled = true, onClick = { navController.navigate(Screen.Issue(task.redmineId)) })
+                            } else {
+                                it
+                            }
+                        },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(modifier = Modifier.fillMaxHeight().width(6.dp).clip(MaterialTheme.shapes.extraLarge).background(Color(task.color)))
                     Column(Modifier.weight(1f).padding(vertical = 0.dp, horizontal = 8.dp)) {
-                        Text(
-                            modifier = Modifier.padding(0.dp),
-                            fontSize = .7.em,
-                            fontWeight = FontWeight.Light,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            text = task.code,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (task.redmineId != null) {
+                                Icon(painterResource(Res.drawable.redmine), contentDescription = null, modifier = Modifier.size(12.dp))
+                            }
+                            Text(
+                                modifier = Modifier.padding(0.dp),
+                                fontSize = .7.em,
+                                fontWeight = FontWeight.Light,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                text = task.code,
+                            )
+                        }
                         Text(modifier = Modifier.padding(bottom = 4.dp, top = 0.dp), fontSize = .9.em, color = MaterialTheme.colorScheme.onBackground, text = task.description)
                     }
                     BadgeDuration(task, modifier = Modifier.padding(end = 8.dp))

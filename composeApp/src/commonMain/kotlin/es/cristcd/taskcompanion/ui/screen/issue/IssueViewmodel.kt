@@ -190,7 +190,7 @@ class IssueViewmodel : ViewModel() {
                 return@launch
             }
 
-            TrackerService.start(TaskForm(categoryId.value, issue.id.toString(), issue.subject))
+            TrackerService.start(TaskForm(categoryId.value, issue.id.toString(), issue.subject, issue.id))
         }
     }
 
