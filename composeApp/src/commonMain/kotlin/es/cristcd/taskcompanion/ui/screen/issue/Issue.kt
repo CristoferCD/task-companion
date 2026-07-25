@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -35,6 +36,7 @@ import es.cristcd.taskcompanion.redmine.model.*
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.PriorityIcon
 import es.cristcd.taskcompanion.ui.common.StatusBadge
+import es.cristcd.taskcompanion.ui.common.TimelineNode
 import es.cristcd.taskcompanion.util.popBackStackIfResumed
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -206,7 +208,16 @@ fun Issue(
 
             HorizontalDivider()
             Text("Comentarios: ", style = MaterialTheme.typography.titleSmall)
-            issue.journals.forEach { Journal(it) }
+            Column {
+                issue.journals.forEach { journal ->
+                    val icon = if (journal.details.isNotEmpty() && journal.notes.isNullOrBlank()) {
+                        Res.drawable.build_24px
+                    } else {
+                        Res.drawable.chat_bubble_24px
+                    }
+                    TimelineNode(icon = icon) { modifier -> Journal(journal, modifier) }
+                }
+            }
         }
     }
 }
@@ -379,29 +390,38 @@ fun IssueAttributeTag(label: String, value: String?, dropdownContent: @Composabl
     }
 }
 
-@OptIn(ExperimentalTime::class)
 @Composable
-fun Journal(journal: JournalDto) {
-    Box(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceContainer)) {
-        Column {
-            Row(modifier = Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(journal.user.name ?: "", style = MaterialTheme.typography.labelSmall)
-                Text(journal.createdOn?.toLocalDateTime(TimeZone.currentSystemDefault()).toString(), style = MaterialTheme.typography.bodySmall)
+fun Journal(journal: JournalDto, modifier: Modifier = Modifier) {
+        Column(modifier = modifier) {
+            Column(modifier = Modifier.padding(bottom = 12.dp).fillMaxWidth() ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(journal.user.name ?: "", style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        journal.createdOn?.toLocalDateTime(TimeZone.currentSystemDefault()).toString(),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                HorizontalDivider()
             }
             if (!journal.notes.isNullOrBlank()) {
                 SelectionContainer {
-                    Text(journal.notes.trim(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 12.dp))
+                    Text(journal.notes.trim(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 12.dp))
+                }
+                if (journal.details.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
                 }
             }
             if (journal.details.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                journal.details.forEach {
-                    JournalAttributeChange(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), it)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(IntrinsicSize.Max).background(Brush.linearGradient(0f to DividerDefaults.color.copy(alpha = 0.2f), 1f to Color.Transparent))) {
+                    VerticalDivider()
+                    Column {
+                        journal.details.forEach {
+                            JournalAttributeChange(Modifier.padding(end = 12.dp, top = 4.dp, bottom = 4.dp), it)
+                        }
+                    }
                 }
             }
-            Spacer(Modifier.height(12.dp))
         }
-    }
 }
 
 @Composable
