@@ -2,19 +2,13 @@ package es.cristcd.taskcompanion.ui.screen.version
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.*
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.redmine.RedmineService
-import es.cristcd.taskcompanion.redmine.model.IdString
-import es.cristcd.taskcompanion.redmine.model.RedmineIssue
-import es.cristcd.taskcompanion.redmine.model.IssueAnalyticsCount
-import es.cristcd.taskcompanion.redmine.model.IssueList
-import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
-import es.cristcd.taskcompanion.redmine.model.Version
-import es.cristcd.taskcompanion.redmine.model.storyPoints
+import es.cristcd.taskcompanion.redmine.model.*
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -26,14 +20,19 @@ class VersionViewmodel : ViewModel() {
     val version: StateFlow<VersionResult>
         field = MutableStateFlow<VersionResult>(VersionResult.Loading)
 
-    fun loadVersion(id: Long) {
+    fun loadVersion(versionId: Long) {
         viewModelScope.launch {
             version.emit(VersionResult.Loading)
-            val redmineVersion = RedmineService.getVersion(id)
-            val issues = RedmineService.listIssues(id)
-            val analytics = calculateAnalytics(issues)
+            val redmineVersion = RedmineService.getVersion(versionId)
+            val issuePager = Pager(
+                config = PagingConfig(
+                    pageSize = 50,
+                ),
+                pagingSourceFactory = { IssueListPagingSource(versionId) }
+            ).flow.cachedIn(viewModelScope)
+            val analytics = IssueListAnalytics(0, emptyList(), emptyList(), emptyList(), 0) //calculateAnalytics(issues)
             val following = isFollowingVersion(redmineVersion.id)
-            version.emit(VersionResult.Ok(redmineVersion, following, issues, analytics))
+            version.emit(VersionResult.Ok(redmineVersion, following, issuePager, analytics))
         }
     }
 
@@ -89,6 +88,27 @@ private fun List<RedmineIssue>.getAnalyticsBy(key: (RedmineIssue) -> IdString?) 
 
 sealed interface VersionResult {
     data object Loading : VersionResult
-    data class Ok(val version: Version, val following: Boolean, val issueList: IssueList, val analytics: IssueListAnalytics) : VersionResult
+    data class Ok(val version: Version, val following: Boolean, val issueList: Flow<PagingData<RedmineIssue>>, val analytics: IssueListAnalytics) : VersionResult
+}
+
+private class IssueListPagingSource(val versionId: Long) : PagingSource<Int, RedmineIssue>() {
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, RedmineIssue> {
+        val offset = params.key ?: 0
+        val items = RedmineService.listIssuesByVersion(versionId, offset, params.loadSize)
+
+        return LoadResult.Page(
+            data = items.issues,
+            prevKey = if (offset == 0) null else offset - items.limit.toInt(),
+            nextKey = if (items.issues.isEmpty()) null else offset + items.limit.toInt()
+        )
+    }
+
+    override fun getRefreshKey(state: PagingState<Int, RedmineIssue>): Int? {
+        return state.anchorPosition?.let { anchor ->
+            state.closestPageToPosition(anchor)?.prevKey?.plus(1)
+                ?: state.closestPageToPosition(anchor)?.nextKey?.minus(1)
+        }
+    }
+
 }
 

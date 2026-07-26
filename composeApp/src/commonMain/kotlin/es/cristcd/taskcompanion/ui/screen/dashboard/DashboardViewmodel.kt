@@ -23,6 +23,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
@@ -72,9 +73,9 @@ class DashboardViewmodel : ViewModel() {
 
         return followedVersions.map {
             val version = RedmineService.getVersion(it)
-            val issues = RedmineService.listIssues(it)
+            val issues = RedmineService.listIssuesByVersion(it, 0, 100)
             val analytics = calculateAnalytics(issues)
-            VersionResult.Ok(version, true, issues, analytics)
+            VersionResult.Ok(version, true, emptyFlow(), analytics)
         }
     }
 

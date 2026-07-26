@@ -29,6 +29,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.navigation)
+            implementation(libs.androidx.paging.compose)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlin.serialization)
             implementation(libs.ktor.client.core)

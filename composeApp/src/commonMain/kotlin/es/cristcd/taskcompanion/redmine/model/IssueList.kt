@@ -11,7 +11,9 @@ import kotlin.time.Instant
 @Serializable
 data class IssueList(
     val issues: List<RedmineIssue>,
-    val totalCount: Long
+    val totalCount: Long,
+    val offset: Long,
+    val limit: Long,
 )
 
 data class IssueListAnalytics(

@@ -26,11 +26,11 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.io.File
 
 object RedmineService {
-    @OptIn(ExperimentalSerializationApi::class)
     private var _client: HttpClient? = configureClientFromDB()
     private val client: HttpClient
         get() = _client ?: error("RedmineService not initialized")
 
+    @OptIn(ExperimentalSerializationApi::class)
     private fun configureClient(url: String, key: String): HttpClient {
         return HttpClient(CIO) {
             install(Logging) {
@@ -76,12 +76,14 @@ object RedmineService {
         return null
     }
 
-    suspend fun listIssues(versionId: Long): IssueList {
+    suspend fun listIssuesByVersion(versionId: Long, offset: Int, limit: Int): IssueList {
         return client.get("issues.json") {
             url {
                 parameter("fixed_version_id", versionId)
+                parameter("status_id", "*")
                 parameter("sort", "status")
-                parameter("limit", 100) //TODO: paginacion
+                parameter("limit", limit)
+                parameter("offset", offset)
             }
         }.body()
     }
@@ -106,11 +108,13 @@ object RedmineService {
         }.body()
     }
 
-    suspend fun listIssuesByProject(projectId: Long): IssueList {
+    suspend fun listIssuesByProject(projectId: Long, offset: Int, limit: Int): IssueList {
         return client.get("issues.json") {
             parameter("project_id", projectId)
+            parameter("status_id", "*")
             parameter("sort", "updated_on:desc")
-            parameter("limit", 50)
+            parameter("limit", limit)
+            parameter("offset", offset)
         }.body()
     }
 

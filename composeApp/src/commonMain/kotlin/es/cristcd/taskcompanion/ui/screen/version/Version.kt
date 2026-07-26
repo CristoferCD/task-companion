@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +21,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import es.cristcd.taskcompanion.redmine.model.IssueList
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
 import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.redmine.model.SimpleCustomField
@@ -158,7 +160,8 @@ fun Version(version: VersionResult.Ok, navController: NavHostController, onFollo
                 }
             }
 
-            IssueTable(version.issueList, onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
+            val issues = version.issueList.collectAsLazyPagingItems()
+            IssueTable(issues, onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
         }
     }
 }
@@ -261,9 +264,8 @@ fun RowChartByCategory(analytics: IssueListAnalytics) {
     }
 }
 
-@OptIn(ExperimentalTime::class)
 @Composable
-fun IssueTable(issues: IssueList, onClick: (RedmineIssue) -> Unit) {
+fun IssueTable(issues: LazyPagingItems<RedmineIssue>, onClick: (RedmineIssue) -> Unit) {
     val columnWidths = remember { mutableStateMapOf<Int, Int>() }
     LazyColumn(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
         item {
@@ -280,35 +282,56 @@ fun IssueTable(issues: IssueList, onClick: (RedmineIssue) -> Unit) {
                 HorizontalDivider()
             }
         }
-        items(issues.issues) { issue ->
-            Column {
-                Row(
-                    Modifier.clickable(onClick = {onClick(issue)}).padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.widthIn(0.dp, 80.dp).maxWidthForColumn(columnWidths, 0)) {
-                        StatusBadge(issue.status)
-                    }
-                    Box(Modifier.maxWidthForColumn(columnWidths, 1)) {
-                        PriorityIcon(issue.priority.name)
-                    }
-                    Text(modifier = Modifier.weight(1f), text = issue.subject, style = MaterialTheme.typography.bodyMedium)
-
-                    Box(Modifier.widthIn(0.dp, 100.dp).maxWidthForColumn(columnWidths, 2)) {
-                        Text(text = issue.assignedTo?.name ?: "", style = MaterialTheme.typography.bodySmall)
-                    }
-                    Box(Modifier.widthIn(0.dp, 100.dp).maxWidthForColumn(columnWidths, 3)) {
-                        Text((issue.customFields.firstOrNull { it.name == "Responsable" } as SimpleCustomField?)?.value ?: "", style = MaterialTheme.typography.bodySmall)
-                    }
-                    Box(Modifier.maxWidthForColumn(columnWidths, 4)) {
+        items(issues.itemCount, key = { issues.itemKey { it.id }}) { idx ->
+            val issue = issues[idx]
+            if (issue != null) {
+                Column {
+                    Row(
+                        Modifier.clickable(onClick = { onClick(issue) }).padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.widthIn(0.dp, 80.dp).maxWidthForColumn(columnWidths, 0)) {
+                            StatusBadge(issue.status)
+                        }
+                        Box(Modifier.maxWidthForColumn(columnWidths, 1)) {
+                            PriorityIcon(issue.priority.name)
+                        }
                         Text(
-                            issue.updatedOn?.toDefaultFormatString() ?: "",
-                            style = MaterialTheme.typography.bodySmall
+                            modifier = Modifier.weight(1f),
+                            text = issue.subject,
+                            style = MaterialTheme.typography.bodyMedium
                         )
+
+                        Box(Modifier.widthIn(0.dp, 100.dp).maxWidthForColumn(columnWidths, 2)) {
+                            Text(text = issue.assignedTo?.name ?: "", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Box(Modifier.widthIn(0.dp, 100.dp).maxWidthForColumn(columnWidths, 3)) {
+                            Text((issue.customFields.firstOrNull { it.name == "Responsable" } as SimpleCustomField?)?.value
+                                ?: "", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Box(Modifier.maxWidthForColumn(columnWidths, 4)) {
+                            Text(
+                                issue.updatedOn?.toDefaultFormatString() ?: "",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
+                    HorizontalDivider()
                 }
-                HorizontalDivider()
+            }
+        }
+        if (issues.loadState.append == LoadState.Loading || issues.loadState.refresh == LoadState.Loading) {
+            item {
+                Box(modifier = Modifier.fillMaxWidth().height(40.dp).clip(MaterialTheme.shapes.medium).background(
+                    MaterialTheme.colorScheme.surfaceContainer), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.secondary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeWidth = 2.dp
+                    )
+                }
             }
         }
     }

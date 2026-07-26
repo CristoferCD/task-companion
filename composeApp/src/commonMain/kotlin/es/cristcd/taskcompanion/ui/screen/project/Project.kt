@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.paging.compose.collectAsLazyPagingItems
 import es.cristcd.taskcompanion.redmine.model.Version
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
@@ -67,7 +68,8 @@ fun Project(project: ProjectResult.Ok, navController: NavHostController) {
                 Tab(selected = selectedTabIndex == 1, onClick = { selectedTabIndex = 1 }, text = { Text("Versiones") })
             }
             if (selectedTabIndex == 0) {
-                IssueTable(project.recentIssues, onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
+                val issues = project.recentIssues.collectAsLazyPagingItems()
+                IssueTable(issues, onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
             } else if (selectedTabIndex == 1) {
                 VersionList(project.versions, onClick = { navController.navigate(Screen.Version(it.id)) })
             }
