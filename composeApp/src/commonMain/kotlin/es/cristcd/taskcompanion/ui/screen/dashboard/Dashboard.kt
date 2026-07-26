@@ -159,7 +159,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                             val filteredIssues = content.list.issues.filter { issue ->
                                 tagFilter.value.none { it.selected } || tagFilter.value.any { it.selected && issue.tags.any { issueTag -> issueTag.id == it.tag.id } }
                             }
-                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, filteredIssues, content.list.total, "No ${group.title.lowercase()}", group.reloading) {
+                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, { navController.navigate(Screen.IssueExplore(content.filter))},  {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, filteredIssues, content.list.total, "No ${group.title.lowercase()}", group.reloading) {
                                 TaskCard(
                                     issue = it,
                                     newItemAlphaAnimation = alphaAnimation,
@@ -170,7 +170,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                             }
                         }
                         is DashboardGroupContent.VersionList -> {
-                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list, null, "No ${group.title.lowercase()}", group.reloading) {
+                            dashboardSection(group.title, { viewmodel.reloadGroup(group.id) }, {}, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, content.list, null, "No ${group.title.lowercase()}", group.reloading) {
                                 VersionCard(it.version, it.analytics, onClick = { navController.navigate(Screen.Version(it.version.id)) })
                             }
                         }
@@ -191,7 +191,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                         }
                         is DashboardGroupContent.Error -> {
                             item(span = StaggeredGridItemSpan.FullLine) {
-                                SectionTitle(group.title, { viewmodel.reloadGroup(group.id) }, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, null)
+                                SectionTitle(group.title, { viewmodel.reloadGroup(group.id) }, {}, {viewmodel.updateGroupName(group.id, it)}, {viewmodel.deleteGroup(group.id)}, null)
                             }
                             item(span = StaggeredGridItemSpan.FullLine) {
                                 Box(modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(
@@ -352,9 +352,9 @@ private fun GroupForm(queries: List<RedmineQueriesByProject>, onAdd: (name: Stri
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload: () -> Unit, onUpdateName: (String) -> Unit, onDelete: () -> Unit, items: List<T>, count: Long?, emptyMessage: String, reloading: Boolean, content: @Composable LazyStaggeredGridItemScope.(T) -> Unit) {
+private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload: () -> Unit, onList: () -> Unit, onUpdateName: (String) -> Unit, onDelete: () -> Unit, items: List<T>, count: Long?, emptyMessage: String, reloading: Boolean, content: @Composable LazyStaggeredGridItemScope.(T) -> Unit) {
     item(span = StaggeredGridItemSpan.FullLine) {
-        SectionTitle(title, onReload, onUpdateName, onDelete, count)
+        SectionTitle(title, onReload, onList, onUpdateName, onDelete, count)
     }
     if (items.isEmpty()) {
         item(span = StaggeredGridItemSpan.FullLine) {
@@ -372,7 +372,7 @@ private fun <T> LazyStaggeredGridScope.dashboardSection(title: String, onReload:
 }
 
 @Composable
-private fun SectionTitle(title: String, onReload: () -> Unit, onUpdateName: (String) -> Unit, onDelete: () -> Unit, count: Long?,) {
+private fun SectionTitle(title: String, onReload: () -> Unit, onList: () -> Unit, onUpdateName: (String) -> Unit, onDelete: () -> Unit, count: Long?,) {
     Row(modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         var editing by remember { mutableStateOf(false) }
         if (!editing) {
@@ -387,6 +387,9 @@ private fun SectionTitle(title: String, onReload: () -> Unit, onUpdateName: (Str
             }
             IconButton(onClick = onReload, modifier = Modifier.size(20.dp)) {
                 Icon(painterResource(Res.drawable.refresh_24px), null, modifier = Modifier.size(16.dp))
+            }
+            IconButton(onClick = onList, modifier = Modifier.size(20.dp)) {
+                Icon(painterResource(Res.drawable.list_24px), contentDescription = "View as list")
             }
             var expanded by remember { mutableStateOf(false) }
             Box(modifier = Modifier.size(20.dp)) {

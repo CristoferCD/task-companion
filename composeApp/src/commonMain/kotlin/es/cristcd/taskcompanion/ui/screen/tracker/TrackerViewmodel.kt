@@ -29,7 +29,6 @@ class TrackerViewmodel : ViewModel() {
     fun load(day: LocalDate) {
         viewModelScope.launch {
             currentDay.emit(day)
-//            tasks.emit(TrackerService.getByDate(day))
             categories.emit(TrackerService.listCategories())
         }
     }

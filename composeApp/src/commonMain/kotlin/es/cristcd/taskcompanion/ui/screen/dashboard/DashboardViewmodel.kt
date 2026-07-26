@@ -16,6 +16,7 @@ import es.cristcd.taskcompanion.search.SearchService
 import es.cristcd.taskcompanion.search.dto.SearchResultDto
 import es.cristcd.taskcompanion.tracker.TrackerService
 import es.cristcd.taskcompanion.tracker.form.TaskForm
+import es.cristcd.taskcompanion.ui.screen.issueexplore.IssueFilter
 import es.cristcd.taskcompanion.ui.screen.version.VersionResult
 import es.cristcd.taskcompanion.ui.screen.version.calculateAnalytics
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -99,9 +100,9 @@ class DashboardViewmodel : ViewModel() {
     private suspend fun loadItems(dashboardItem: DashboardItem): DashboardGroupContent {
         return try {
             when(dashboardItem) {
-                DashboardItem.AssignedToMe -> DashboardGroupContent.IssueList(IssueService.listAssignedToMe())
-                is DashboardItem.CustomQuery -> DashboardGroupContent.IssueList(IssueService.listByQuery(dashboardItem.queryId, dashboardItem.projectId))
-                DashboardItem.Monitored -> DashboardGroupContent.IssueList(IssueService.listMonitored())
+                DashboardItem.AssignedToMe -> DashboardGroupContent.IssueList(IssueService.listAssignedToMe(), IssueFilter())
+                is DashboardItem.CustomQuery -> DashboardGroupContent.IssueList(IssueService.listByQuery(dashboardItem.queryId, dashboardItem.projectId), IssueFilter(dashboardItem.queryId, dashboardItem.projectId))
+                DashboardItem.Monitored -> DashboardGroupContent.IssueList(IssueService.listMonitored(), IssueFilter())
                 DashboardItem.FollowedVersions -> DashboardGroupContent.VersionList(listFollowedVersions())
             }
         } catch (e: Exception) {
@@ -307,7 +308,7 @@ class DashboardViewmodel : ViewModel() {
 
 data class DashboardGroup(val id: Int, val title: String, val content: DashboardGroupContent, val reloading: Boolean = false)
 sealed interface DashboardGroupContent {
-    data class IssueList(val list: IssueListDto) : DashboardGroupContent
+    data class IssueList(val list: IssueListDto, val filter: IssueFilter) : DashboardGroupContent
     data class VersionList(val list: List<VersionResult.Ok>) : DashboardGroupContent
     data class Loading(val item: DashboardItem) : DashboardGroupContent
     data class Error(val message: String) : DashboardGroupContent

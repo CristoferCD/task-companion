@@ -27,7 +27,6 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
 import es.cristcd.taskcompanion.redmine.model.RedmineIssue
-import es.cristcd.taskcompanion.redmine.model.SimpleCustomField
 import es.cristcd.taskcompanion.tracker.SettingsCache
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
@@ -275,9 +274,7 @@ fun IssueTable(issues: LazyPagingItems<RedmineIssue>, onClick: (RedmineIssue) ->
                     Text(modifier = Modifier.widthPx(columnWidths[1] ?: 0), text = "", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
                     Text(modifier = Modifier.weight(1f), text = "Asunto", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
                     Text(modifier = Modifier.widthPx(columnWidths[2] ?: 0), text = "Asignado a", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
-                    Text(modifier = Modifier.widthPx(columnWidths[3] ?: 0), text = "Responsable", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
-                    Text(modifier = Modifier.widthPx(columnWidths[4] ?: 0), text = "Actualizado", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
-
+                    Text(modifier = Modifier.widthPx(columnWidths[3] ?: 0), text = "Actualizado", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
                 }
                 HorizontalDivider()
             }
@@ -306,11 +303,7 @@ fun IssueTable(issues: LazyPagingItems<RedmineIssue>, onClick: (RedmineIssue) ->
                         Box(Modifier.widthIn(0.dp, 100.dp).maxWidthForColumn(columnWidths, 2)) {
                             Text(text = issue.assignedTo?.name ?: "", style = MaterialTheme.typography.bodySmall)
                         }
-                        Box(Modifier.widthIn(0.dp, 100.dp).maxWidthForColumn(columnWidths, 3)) {
-                            Text((issue.customFields.firstOrNull { it.name == "Responsable" } as SimpleCustomField?)?.value
-                                ?: "", style = MaterialTheme.typography.bodySmall)
-                        }
-                        Box(Modifier.maxWidthForColumn(columnWidths, 4)) {
+                        Box(Modifier.maxWidthForColumn(columnWidths, 3)) {
                             Text(
                                 issue.updatedOn?.toDefaultFormatString() ?: "",
                                 style = MaterialTheme.typography.bodySmall

@@ -2,6 +2,7 @@ package es.cristcd.taskcompanion.redmine
 
 import es.cristcd.taskcompanion.persistence.model.UserPreferences
 import es.cristcd.taskcompanion.redmine.model.*
+import es.cristcd.taskcompanion.ui.screen.issueexplore.IssueFilter
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -99,12 +100,27 @@ object RedmineService {
     }
 
     suspend fun listIssuesByQuery(queryId: Long, projectId: Long?): IssueList {
+        return listIssuesByQuery(queryId, projectId, 0, 50)
+    }
+
+    suspend fun listIssuesByQuery(queryId: Long, projectId: Long?, offset: Int, limit: Int): IssueList {
         return client.get("issues.json") {
             parameter("query_id", queryId)
             if (projectId != null) {
                 parameter("project_id", projectId)
             }
-            parameter("limit", 50)
+            parameter("limit", limit)
+            parameter("offset", offset)
+        }.body()
+    }
+
+    suspend fun listIssuesByFilter(filter: IssueFilter, offset: Int, limit: Int): IssueList {
+        return client.get("issues.json") {
+            filter.customQueryId?.let { parameter("query_id", it) }
+            filter.projectId?.let { parameter("project_id", it) }
+            filter.subject?.let { parameter("subject", it) }
+            parameter("limit", limit)
+            parameter("offset", offset)
         }.body()
     }
 

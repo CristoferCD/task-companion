@@ -27,6 +27,8 @@ import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.SnackbarControllerProvider
 import es.cristcd.taskcompanion.ui.screen.dashboard.Dashboard
 import es.cristcd.taskcompanion.ui.screen.issue.IssueScreen
+import es.cristcd.taskcompanion.ui.screen.issueexplore.IssueExploreScreen
+import es.cristcd.taskcompanion.ui.screen.issueexplore.IssueFilter
 import es.cristcd.taskcompanion.ui.screen.project.ProjectScreen
 import es.cristcd.taskcompanion.ui.screen.settings.Settings
 import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
@@ -83,7 +85,10 @@ fun App(navController: NavHostController = rememberNavController()) {
                     composable<Screen.Settings> {
                         Settings(navController = navController)
                     }
-
+                    composable<Screen.IssueExplore>(typeMap = mapOf(typeOf<IssueFilter>() to serializableType<IssueFilter>())) {
+                        val filter = it.toRoute<Screen.IssueExplore>()
+                        IssueExploreScreen(filter.filter, navController)
+                    }
                 }
             }
         }

@@ -1,5 +1,6 @@
 package es.cristcd.taskcompanion.ui
 
+import es.cristcd.taskcompanion.ui.screen.issueexplore.IssueFilter
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
@@ -21,4 +22,7 @@ sealed interface Screen {
 
     @Serializable
     object Settings
+
+    @Serializable
+    data class IssueExplore(val filter: IssueFilter)
 }
