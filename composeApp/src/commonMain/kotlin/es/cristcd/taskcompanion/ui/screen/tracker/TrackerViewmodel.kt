@@ -36,13 +36,14 @@ class TrackerViewmodel : ViewModel() {
     fun start(form: TaskForm) {
         viewModelScope.launch {
             TrackerService.start(form)
-            load(today())
+            currentDay.emit(today())
         }
     }
 
     fun resume(task: TaskDto) {
         viewModelScope.launch {
             TrackerService.resume(task.id)
+            currentDay.emit(today())
         }
     }
 
