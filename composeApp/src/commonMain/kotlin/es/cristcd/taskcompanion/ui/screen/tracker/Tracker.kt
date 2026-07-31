@@ -36,7 +36,6 @@ import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
 import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Tracker(
     day: LocalDate,
@@ -60,48 +59,92 @@ fun Tracker(
             }
         }
 
+        val latestTasks = viewmodel.latestTasks.collectAsState()
         val tasks = viewmodel.tasks.collectAsState()
-        LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(tasks.value) { task ->
-                Row(
-                    modifier = Modifier.height(IntrinsicSize.Max).fillMaxWidth()
-                        .clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surface)
-                        .let {
-                            if (task.redmineId != null) {
-                                it.clickable(enabled = true, onClick = { navController.navigate(Screen.Issue(task.redmineId)) })
-                            } else {
-                                it
-                            }
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.fillMaxHeight().width(6.dp).clip(MaterialTheme.shapes.extraLarge).background(Color(task.color)))
-                    Column(Modifier.weight(1f).padding(vertical = 0.dp, horizontal = 8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            if (task.redmineId != null) {
-                                Icon(painterResource(Res.drawable.redmine), contentDescription = null, modifier = Modifier.size(12.dp))
-                            }
+
+        if (tasks.value.isEmpty() && latestTasks.value.isNotEmpty()) {
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Text(text = "Continue where you left off", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(20.dp))
+                latestTasks.value.forEach { task ->
+                    Row(
+                        modifier = Modifier.height(IntrinsicSize.Max).fillMaxWidth()
+                            .clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surface)
+                            .clickable(enabled = true, onClick = { viewmodel.resume(task) }),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(modifier = Modifier.fillMaxHeight().width(6.dp).clip(MaterialTheme.shapes.extraLarge).background(Color(task.color)))
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text(
-                                modifier = Modifier.padding(0.dp),
-                                fontSize = .7.em,
-                                fontWeight = FontWeight.Light,
-                                color = MaterialTheme.colorScheme.onBackground,
                                 text = task.code,
+                                style = MaterialTheme.typography.labelMediumEmphasized
+                            )
+                            Text(
+                                text = task.description,
+                                style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        Text(modifier = Modifier.padding(bottom = 4.dp, top = 0.dp), fontSize = .9.em, color = MaterialTheme.colorScheme.onBackground, text = task.description)
                     }
-                    BadgeDuration(task, modifier = Modifier.padding(end = 8.dp))
-
-                    ListItemActions(task, viewmodel::resume, viewmodel::stop, viewmodel::delete)
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-                Spacer(Modifier.height(4.dp))
-
             }
-        }
+        } else {
+            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                items(tasks.value) { task ->
+                    TaskEntry(
+                        task,
+                        { navController.navigate(Screen.Issue(it)) },
+                        viewmodel::resume,
+                        viewmodel::stop,
+                        viewmodel::delete
+                    )
+                }
+            }
 
+        }
         NewTaskForm(viewmodel.categories.collectAsState().value, onSubmit = { viewmodel.start(it) })
     }
+}
+
+@Composable
+fun TaskEntry(task: TaskDto,
+              onClick: (redmineId: Long) -> Unit,
+              onResumeTask: (TaskDto) -> Unit,
+              onStopTask: (TaskDto) -> Unit,
+              onDelete: (TaskDto) -> Unit) {
+    Row(
+        modifier = Modifier.height(IntrinsicSize.Max).fillMaxWidth()
+            .clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surface)
+            .let {
+                if (task.redmineId != null) {
+                    it.clickable(enabled = true, onClick = { onClick(task.redmineId) })
+                } else {
+                    it
+                }
+            },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.fillMaxHeight().width(6.dp).clip(MaterialTheme.shapes.extraLarge).background(Color(task.color)))
+        Column(Modifier.weight(1f).padding(vertical = 0.dp, horizontal = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (task.redmineId != null) {
+                    Icon(painterResource(Res.drawable.redmine), contentDescription = null, modifier = Modifier.size(12.dp))
+                }
+                Text(
+                    modifier = Modifier.padding(0.dp),
+                    fontSize = .7.em,
+                    fontWeight = FontWeight.Light,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    text = task.code,
+                )
+            }
+            Text(modifier = Modifier.padding(bottom = 4.dp, top = 0.dp), fontSize = .9.em, color = MaterialTheme.colorScheme.onBackground, text = task.description)
+        }
+        BadgeDuration(task, modifier = Modifier.padding(end = 8.dp))
+
+        ListItemActions(task, onResumeTask, onStopTask, onDelete)
+    }
+    Spacer(Modifier.height(4.dp))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -224,7 +267,7 @@ fun BadgeDuration(task: TaskDto, modifier: Modifier = Modifier) {
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun ListItemActions(
     it: TaskDto,

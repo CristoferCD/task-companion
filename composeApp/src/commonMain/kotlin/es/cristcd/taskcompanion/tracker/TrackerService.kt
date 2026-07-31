@@ -12,9 +12,8 @@ import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
+import kotlin.time.Duration.Companion.days
 
-@OptIn(ExperimentalTime::class)
 object TrackerService {
 
     private val taskTableObserver = TableObserver()
@@ -102,6 +101,28 @@ object TrackerService {
     fun listStatuses(): List<StatusDto> {
         return transaction {
             Status.selectAll().map { it.toStatusDto() }
+        }
+    }
+
+    fun listLatestTaskTracked(): List<TaskDto> {
+        return transaction {
+            val lastTask = Task.select(Task.start).orderBy(Task.start to SortOrder.DESC).limit(1).first()[Task.start]
+            val maxIdPerCode = Task.id.max()
+            val recentTasks = Task.select(Task.code, maxIdPerCode)
+                .where {
+                    Task.start greaterEq lastTask.minus(1.days)
+                }
+                .groupBy(Task.code)
+                .orderBy(Task.start to SortOrder.DESC )
+                .limit(5)
+                .mapNotNull { it[maxIdPerCode] }
+
+            (Task innerJoin Category).selectAll()
+                .where {
+                    Task.id inList recentTasks
+                }
+                .orderBy(Task.start to SortOrder.DESC)
+                .map { it.toTaskDto() }
         }
     }
 

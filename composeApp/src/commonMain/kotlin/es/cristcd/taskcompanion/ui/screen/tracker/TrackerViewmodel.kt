@@ -12,9 +12,8 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class, ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class TrackerViewmodel : ViewModel() {
 
     val categories: StateFlow<List<CategoryDto>>
@@ -24,6 +23,9 @@ class TrackerViewmodel : ViewModel() {
         field = MutableStateFlow(today())
 
     val tasks: StateFlow<List<TaskDto>> = currentDay.flatMapLatest { TrackerService.observeByDate(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
+
+    val latestTasks: StateFlow<List<TaskDto>> = tasks.filter { it.isEmpty() }.map { TrackerService.listLatestTaskTracked() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5.seconds), emptyList())
 
     fun load(day: LocalDate) {
