@@ -28,7 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import es.cristcd.taskcompanion.events.ShortcutEvent
 import es.cristcd.taskcompanion.events.ShortcutEventBus
-import es.cristcd.taskcompanion.persistence.model.DashboardItem
+import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.TaskCard
 import es.cristcd.taskcompanion.ui.common.VersionCard
@@ -43,9 +43,7 @@ import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalTime::class, ExperimentalMaterialApi::class)
 @Composable
 fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = viewModel { DashboardViewmodel() }) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -88,11 +86,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
 
         val items = viewmodel.layoutItems.collectAsStateWithLifecycle()
         val tagFilter = viewmodel.tagFilter.collectAsStateWithLifecycle()
-        Row(
-            modifier = Modifier
-                .safeContentPadding()
-                .fillMaxHeight(),
-        ) {
+        Row(modifier = Modifier.safeContentPadding().fillMaxHeight()) {
             val alphaAnimation = remember {
                 Animatable(0.8f)
             }
@@ -109,49 +103,7 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                 modifier = Modifier.fillMaxHeight().clip(RoundedCornerShape(topStart = 0.dp, topEnd = 12.dp, bottomStart = 0.dp, bottomEnd = 0.dp)).background(MaterialTheme.colorScheme.surface).weight(1f)
             ) {
                 item(span = StaggeredGridItemSpan.FullLine) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-                        Text("Filtro:", style = MaterialTheme.typography.labelMediumEmphasized)
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f, fill = false)) {
-                            items(tagFilter.value) {
-                                FilterChip(
-                                    it.selected,
-                                    onClick = { viewmodel.toggleTagFilter(it.tag.id) },
-                                    colors = ChipDefaults.outlinedFilterChipColors(),
-                                    border = ChipDefaults.outlinedBorder.let { border ->
-                                        if (it.tag.color != null) {
-                                            val opacity = if (it.selected) 1f else 0.5f
-                                            border.copy(brush = SolidColor(Color(it.tag.color).copy(alpha = opacity)))
-                                        } else {
-                                            border
-                                        }
-                                    },
-                                    shape = MaterialTheme.shapes.medium,
-                                    leadingIcon = {
-                                        if (it.selected) {
-                                            Icon(painterResource(Res.drawable.check_24px), contentDescription = null, Modifier.size(18.dp))
-                                        }
-                                    }
-                                ) {
-                                    Text(it.tag.name, style = MaterialTheme.typography.labelSmall)
-                                }
-                            }
-                        }
-                        val filterCount = tagFilter.value.count { it.selected }
-                        BadgedBox(
-                            badge = {
-                                if (filterCount > 0) {
-                                    Badge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
-                                        Text("$filterCount")
-                                    }
-                                }
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            IconButton(onClick = { viewmodel.clearTagFilter() }, enabled = filterCount > 0) {
-                                Icon(painterResource(Res.drawable.delete_24px), contentDescription = "Clear filter")
-                            }
-                        }
-                    }
+                    TaskFilterRow(tagFilter.value, toggleFilter = { viewmodel.toggleTagFilter(it.id) }, clearFilter = viewmodel::clearTagFilter)
                 }
                 items.value.forEach { group ->
                     when(val content = group.content) {
@@ -221,10 +173,10 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                                 viewmodel.loadRedmineQueries()
                             }
                         }
-                        GroupForm(
+                        DashboardSectionSelector(
                             queries.value,
-                            onAdd = { name, item -> showNewGroupForm = false; viewmodel.createGroup(name, item) },
-                            onCancel = { showNewGroupForm = false }
+                            onSelect = { name, item -> showNewGroupForm = false; viewmodel.createGroup(name, item) },
+                            onDismiss = { showNewGroupForm = false }
                         )
                     }
                 }
@@ -273,80 +225,50 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-private fun GroupForm(queries: List<RedmineQueriesByProject>, onAdd: (name: String, item: DashboardItem) -> Unit, onCancel: () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        var groupName by remember { mutableStateOf("") }
-        var itemBoxExpanded by remember { mutableStateOf(false) }
-        var selectedGroupItemName by remember { mutableStateOf("") }
-        var groupItem by remember { mutableStateOf<DashboardItem?>(null)}
-
-        val onGroupSelection = { name: String, item: DashboardItem ->
-            selectedGroupItemName = name
-            if (groupName.isBlank()) {
-                groupName = selectedGroupItemName
-            }
-            groupItem = item
-            itemBoxExpanded = false
-        }
-
-        OutlinedTextField(value = groupName, onValueChange = { groupName = it }, label = { Text("Group Name") })
-        ExposedDropdownMenuBox(expanded = itemBoxExpanded, onExpandedChange = { itemBoxExpanded = !itemBoxExpanded }, modifier = Modifier.widthIn(max = 500.dp)) {
-            OutlinedTextField(
-                label = { Text("Item") },
-                value = selectedGroupItemName,
-                onValueChange = {},
-                readOnly = true,
-                singleLine = true,
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = itemBoxExpanded)
-                },
-                colors = ExposedDropdownMenuDefaults.textFieldColors(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-            )
-
-            ExposedDropdownMenu(
-                expanded = itemBoxExpanded,
-                onDismissRequest = { itemBoxExpanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Asignados a mi") },
-                    onClick = { onGroupSelection("Asignados a mi", DashboardItem.AssignedToMe) }
-                )
-                DropdownMenuItem(
-                    text = { Text("Monitorizados") },
-                    onClick = { onGroupSelection("Monitorizados", DashboardItem.Monitored) }
-                )
-                DropdownMenuItem(
-                    text = { Text("Versiones seguidas") },
-                    onClick = { onGroupSelection("Versiones seguidas", DashboardItem.FollowedVersions) }
-                )
-                queries.forEach { (project, queryList) ->
-                    HorizontalDivider()
-                    Text(
-                        text = project,
-                        modifier = Modifier.padding(8.dp),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    HorizontalDivider()
-                    queryList.forEach { query ->
-                        DropdownMenuItem(
-                            text = { Text(query.name) },
-                            onClick = { onGroupSelection(query.name, DashboardItem.CustomQuery(query.id, query.projectId)) }
-                        )
+private fun TaskFilterRow(tagFilter: List<TagFilterChip>, toggleFilter: (TagDto) -> Unit, clearFilter: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+        Text("Filtro:", style = MaterialTheme.typography.labelMediumEmphasized)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f, fill = false)) {
+            items(tagFilter) {
+                FilterChip(
+                    it.selected,
+                    onClick = { toggleFilter(it.tag) },
+                    colors = ChipDefaults.outlinedFilterChipColors(),
+                    border = ChipDefaults.outlinedBorder.let { border ->
+                        if (it.tag.color != null) {
+                            val opacity = if (it.selected) 1f else 0.5f
+                            border.copy(brush = SolidColor(Color(it.tag.color).copy(alpha = opacity)))
+                        } else {
+                            border
+                        }
+                    },
+                    shape = MaterialTheme.shapes.medium,
+                    leadingIcon = {
+                        if (it.selected) {
+                            Icon(painterResource(Res.drawable.check_24px), contentDescription = null, Modifier.size(18.dp))
+                        }
                     }
+                ) {
+                    Text(it.tag.name, style = MaterialTheme.typography.labelSmall)
                 }
             }
-
         }
-        IconButton(onClick = { onAdd(groupName, groupItem!!) }) {
-            Icon(painterResource(Res.drawable.add_24px), "Add")
-        }
-        IconButton(onClick = onCancel) {
-            Icon(painterResource(Res.drawable.cancel_24px), contentDescription = "Cancel")
+        val filterCount = tagFilter.count { it.selected }
+        BadgedBox(
+            badge = {
+                if (filterCount > 0) {
+                    Badge(containerColor = MaterialTheme.colorScheme.tertiaryContainer) {
+                        Text("$filterCount")
+                    }
+                }
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            IconButton(onClick = clearFilter, enabled = filterCount > 0) {
+                Icon(painterResource(Res.drawable.delete_24px), contentDescription = "Clear filter")
+            }
         }
     }
 }
