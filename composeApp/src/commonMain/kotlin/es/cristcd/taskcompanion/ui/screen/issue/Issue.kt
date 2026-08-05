@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
@@ -38,6 +39,7 @@ import es.cristcd.taskcompanion.ui.common.PriorityIcon
 import es.cristcd.taskcompanion.ui.common.StatusBadge
 import es.cristcd.taskcompanion.ui.common.TimelineNode
 import es.cristcd.taskcompanion.util.popBackStackIfResumed
+import es.cristcd.taskcompanion.util.trimToComposeLength
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -195,7 +197,7 @@ fun Issue(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SelectionContainer(modifier = Modifier.weight(1f, fill = true).padding(start = 8.dp)) {
-                    Text(issue.description.trim())
+                    Text(issue.description.trimToComposeLength())
                 }
                 IssueSidebar(
                     issue,
@@ -405,7 +407,7 @@ fun Journal(journal: JournalDto, modifier: Modifier = Modifier) {
             }
             if (!journal.notes.isNullOrBlank()) {
                 SelectionContainer {
-                    Text(journal.notes.trim(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 12.dp))
+                    Text(journal.notes.trimToComposeLength(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 12.dp))
                 }
                 if (journal.details.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
