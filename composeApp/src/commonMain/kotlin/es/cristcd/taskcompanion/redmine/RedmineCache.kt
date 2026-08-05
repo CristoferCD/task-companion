@@ -29,7 +29,7 @@ object RedmineCache {
         return priorities[priority.id]
     }
 
-    suspend operator fun get(user: RedmineEntity.User): String? {
+    suspend operator fun get(user: RedmineEntity.User): String {
         loadingUsernames?.join()
         val cacheHit = usernames[user.id]
         if (cacheHit != null) {
@@ -46,10 +46,11 @@ object RedmineCache {
                     usernames[projectUsername.id!!] = projectUsername.name ?: ""
                 }
                 offset += limit
-            } while (usernames[user.id] == null && (offset + limit) < memberships.totalCount)
+            } while (isActive && usernames[user.id] == null && (offset + limit) < memberships.totalCount)
         }
         loadingUsernames?.join()
-        return usernames[user.id]
+        //To avoid reevaluating the membership list for a user not found, insert the id in the cache
+        return usernames.getOrPut(user.id) { user.id.toString() }
     }
 
     suspend operator fun get(version: RedmineEntity.Version): String? {
