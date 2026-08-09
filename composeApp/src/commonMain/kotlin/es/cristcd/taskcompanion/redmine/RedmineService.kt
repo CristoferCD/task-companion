@@ -257,6 +257,14 @@ object RedmineService {
         }.body()
     }
 
+    suspend fun getUser(userId: Long): User? {
+        val response = client.get("users/$userId.json")
+        if (response.status == HttpStatusCode.NotFound) {
+            return null
+        }
+        return response.body<UserRoot>().user
+    }
+
     fun clearCredentials() {
         _client = null
     }

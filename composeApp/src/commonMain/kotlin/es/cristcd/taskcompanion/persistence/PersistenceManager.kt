@@ -7,6 +7,8 @@ import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.persistence.model.Issue
 import es.cristcd.taskcompanion.persistence.model.IssueTag
 import es.cristcd.taskcompanion.persistence.model.RedmineIssue
+import es.cristcd.taskcompanion.persistence.model.RedmineUser
+import es.cristcd.taskcompanion.persistence.model.RedmineUserInvalidation
 import es.cristcd.taskcompanion.persistence.model.Status
 import es.cristcd.taskcompanion.persistence.model.Tag
 import es.cristcd.taskcompanion.persistence.model.Task
@@ -43,6 +45,8 @@ object PersistenceManager {
                 Issue,
                 IssueTag,
                 RedmineIssue,
+                RedmineUser,
+                RedmineUserInvalidation,
                 Status,
                 Tag,
                 Task,
@@ -57,6 +61,8 @@ object PersistenceManager {
                 Issue,
                 IssueTag,
                 RedmineIssue,
+                RedmineUser,
+                RedmineUserInvalidation,
                 Status,
                 Tag,
                 Task,

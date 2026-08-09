@@ -23,6 +23,8 @@ import androidx.navigation.toRoute
 import androidx.savedstate.SavedState
 import androidx.savedstate.read
 import androidx.savedstate.write
+import es.cristcd.taskcompanion.redmine.RedmineCache
+import es.cristcd.taskcompanion.redmine.RedmineUserCacheService
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.SnackbarControllerProvider
 import es.cristcd.taskcompanion.ui.screen.dashboard.Dashboard
@@ -53,6 +55,7 @@ fun App(navController: NavHostController = rememberNavController()) {
             ) {
                 LaunchedEffect(true) {
                     checkUpdates(snackbarHostState)
+                    RedmineCache.registerUsernameRefresh()
                 }
 
                 NavHost(

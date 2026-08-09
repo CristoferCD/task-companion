@@ -2,72 +2,79 @@ package es.cristcd.taskcompanion.redmine
 
 import es.cristcd.taskcompanion.redmine.model.IssuePriority
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.time.sample
+import kotlin.time.Duration.Companion.minutes
 
 object RedmineCache {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     private var priorities: Map<Long, IssuePriority> = emptyMap()
-    private var loadingPriorities: Job? = null
 
     private var usernames: MutableMap<Long, String> = mutableMapOf()
-    private var loadingUsernames: Job? = null
 
     private var versionNames: MutableMap<Long, String> = mutableMapOf()
-    private var loadingVersions: Job? = null
 
+    private val loadingPrioritiesMutex = Mutex()
     suspend operator fun get(priority: RedmineEntity.Priority): IssuePriority? {
-        loadingPriorities?.join()
-        val cacheHit = priorities[priority.id]
-        if (cacheHit != null) {
-            return cacheHit
-        }
-        loadingPriorities = scope.launch {
+        priorities[priority.id]?.let { return it }
+
+        loadingPrioritiesMutex.withLock {
             priorities = RedmineService.listPriorities().associateBy { it.id }
         }
-        loadingPriorities?.join()
         return priorities[priority.id]
     }
 
+    private val loadingUsernamesMutex = Mutex()
     suspend operator fun get(user: RedmineEntity.User): String {
-        loadingUsernames?.join()
-        val cacheHit = usernames[user.id]
-        if (cacheHit != null) {
-            return cacheHit
+        usernames[user.id]?.let { return it }
+
+        loadingUsernamesMutex.withLock {
+            //Check if loaded while waiting for lock
+            usernames[user.id]?.let { return it }
+            val cacheHit = RedmineUserCacheService.getUsername(user.id)
+            if (cacheHit != null) {
+                usernames[user.id] = cacheHit
+            } else {
+                val apiHit = RedmineService.getUser(user.id)
+                if (apiHit != null) {
+                    usernames[user.id] = listOfNotNull(apiHit.firstname, apiHit.lastname).joinToString(" ")
+                    RedmineUserCacheService.update(apiHit)
+                }
+            }
         }
 
-        loadingUsernames = scope.launch {
-            var offset = 0
-            val limit = 100
-            do {
-                val memberships = RedmineService.listUserMemberships(user.projectId, offset, limit)
-                val projectUsernames = memberships.memberships.mapNotNull { it.user }.filter { it.id != null }
-                projectUsernames.forEach { projectUsername ->
-                    usernames[projectUsername.id!!] = projectUsername.name ?: ""
-                }
-                offset += limit
-            } while (isActive && usernames[user.id] == null && (offset + limit) < memberships.totalCount)
-        }
-        loadingUsernames?.join()
         //To avoid reevaluating the membership list for a user not found, insert the id in the cache
         return usernames.getOrPut(user.id) { user.id.toString() }
     }
 
+    private val loadingVersionsMutex = Mutex()
     suspend operator fun get(version: RedmineEntity.Version): String? {
-        loadingVersions?.join()
-        val cacheHit = versionNames[version.id]
-        if (cacheHit != null) {
-            return cacheHit
-        }
+        versionNames[version.id]?.let { return it }
 
-        loadingVersions = scope.launch {
+        loadingVersionsMutex.withLock {
+            versionNames[version.id]?.let { return it }
+
             val versions = RedmineService.listProjectVersions(version.projectId)
             versions.forEach { version ->
                 versionNames[version.id] = version.name
             }
         }
-        loadingVersions?.join()
         return versionNames[version.id]
+    }
+
+    @OptIn(FlowPreview::class)
+    suspend fun registerUsernameRefresh() {
+        RedmineUserCacheService.usernameInvalidationFlow().sample(5.minutes).collect { ids ->
+            ids.forEach { userId ->
+                val apiHit = RedmineService.getUser(userId)
+                if (apiHit != null) {
+                    usernames[userId] = listOfNotNull(apiHit.firstname, apiHit.lastname).joinToString(" ")
+                    RedmineUserCacheService.update(apiHit)
+                }
+            }
+        }
     }
 }
 
