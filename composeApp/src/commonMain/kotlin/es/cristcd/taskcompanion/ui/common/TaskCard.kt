@@ -4,32 +4,36 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import es.cristcd.taskcompanion.issue.IssueService
 import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
 import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.redmine.model.IdString
 import es.cristcd.taskcompanion.tracker.SettingsCache
 import es.cristcd.taskcompanion.ui.screen.issue.abbreviate
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
+import java.awt.datatransfer.StringSelection
 import kotlin.math.max
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalTime::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, AnimationVector1D>, onClick: () -> Unit = {}, onStart: () -> Unit, onUpdateTags: (tags: List<TagDto>) -> Unit) {
     ElevatedCard(
@@ -37,48 +41,80 @@ fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, A
         shape = MaterialTheme.shapes.small
     ) {
         val statusColor = SettingsCache.getStatus(issue.status.id)?.color ?: Color.DarkGray
-        Box(modifier = Modifier.background(statusColor.copy(alpha = 0.08f)).priorityBorder(issue.priority.name).padding(4.dp).height(IntrinsicSize.Min)) {
-            var optionsOverlay by remember { mutableStateOf(false) }
-            Row(modifier = Modifier.alpha(if (optionsOverlay) 0.0f else 1.0f)) {
-                Column(modifier = Modifier.weight(1f).padding(horizontal = 6.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-                            StatusBadge(issue.status)
-                            TaskParent(issue)
+        Column {
+            Box(
+                modifier = Modifier.background(statusColor.copy(alpha = 0.08f)).priorityBorder(issue.priority.name)
+                    .padding(4.dp).height(IntrinsicSize.Min)
+            ) {
+                var optionsOverlay by remember { mutableStateOf(false) }
+                Row(modifier = Modifier.alpha(if (optionsOverlay) 0.0f else 1.0f)) {
+                    Column(
+                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                StatusBadge(issue.status)
+                                TaskParent(issue)
+                            }
+                            PriorityIcon(issue.priority.name)
                         }
-                        PriorityIcon(issue.priority.name)
-                    }
-                    Text(text = issue.subject, style = MaterialTheme.typography.titleSmall)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        IssueTags(issue.tags, modifier = Modifier.weight(1f, true))
-                        TaskUpdatedAt(issue.updatedOn, issue.recentlyChanged, newItemAlphaAnimation, modifier = Modifier.weight(1f, false))
+                        Text(
+                            text = issue.subject,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(start = 0.dp)
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            IssueTags(issue.id, issue.tags, modifier = Modifier.weight(1f))
+                            TaskUpdatedAt(
+                                issue.updatedOn,
+                                issue.recentlyChanged,
+                                newItemAlphaAnimation,
+                                modifier = Modifier.weight(1f, false)
+                            )
 
+                        }
+                    }
+                    Box(modifier = Modifier.fillMaxHeight().width(16.dp), contentAlignment = Alignment.Center) {
+                        IconButton(onClick = { optionsOverlay = true }) {
+                            Icon(painterResource(Res.drawable.more_vert_24px), contentDescription = "More options")
+                        }
                     }
                 }
-                Box(modifier = Modifier.fillMaxHeight().width(16.dp), contentAlignment = Alignment.Center) {
-                    IconButton(onClick = { optionsOverlay = true }) {
-                        Icon(painterResource(Res.drawable.more_vert_24px), contentDescription = "More options")
-                    }
-                }
-            }
 
-            var tagsDialog by remember { mutableStateOf(false) }
-            if (optionsOverlay) {
-                IssueOptionsOverlay(onDismiss = { optionsOverlay = false }, onStart = onStart, onEditTags = { tagsDialog = true })
-            }
-            if (tagsDialog) {
-                var availableTags by remember { mutableStateOf(emptyList<TagDto>()) } //FIXME
-                LaunchedEffect(true) {
-                    availableTags = IssueService.listTags()
+                var tagsDialog by remember { mutableStateOf(false) }
+                if (optionsOverlay) {
+                    IssueOptionsOverlay(
+                        onDismiss = { optionsOverlay = false },
+                        onStart = onStart,
+                        onEditTags = { tagsDialog = true })
                 }
-                var selectedTags by remember { mutableStateOf(issue.tags.toList())}
-                IssueTagsDialog(
-                    selectedTags,
-                    availableTags,
-                    onAssign = { name -> availableTags.find { it.name == name }?.let { selectedTags = selectedTags + it } },
-                    onRemove = { name -> availableTags.find { it.name == name }?.let { selectedTags = selectedTags.filter{ st -> it != st} } },
-                    onConfirm = { onUpdateTags(selectedTags); tagsDialog = false },
-                    onDismiss = { tagsDialog = false })
+                if (tagsDialog) {
+                    var availableTags by remember { mutableStateOf(emptyList<TagDto>()) } //FIXME
+                    LaunchedEffect(true) {
+                        availableTags = IssueService.listTags()
+                    }
+                    var selectedTags by remember { mutableStateOf(issue.tags.toList()) }
+                    IssueTagsDialog(
+                        selectedTags,
+                        availableTags,
+                        onAssign = { name ->
+                            availableTags.find { it.name == name }?.let { selectedTags = selectedTags + it }
+                        },
+                        onRemove = { name ->
+                            availableTags.find { it.name == name }
+                                ?.let { selectedTags = selectedTags.filter { st -> it != st } }
+                        },
+                        onConfirm = { onUpdateTags(selectedTags); tagsDialog = false },
+                        onDismiss = { tagsDialog = false })
+                }
             }
         }
 
@@ -109,44 +145,64 @@ fun TaskUpdatedAt(updatedOn: Instant?, recentlyChanged: Boolean, newItemAlphaAni
 @Composable
 private fun TaskParent(issue: IssueListItemDto) {
     if (issue.fixedVersion?.name != null) {
-        Text(text = issue.fixedVersion.name, style = MaterialTheme.typography.labelSmall)
+        Text(text = issue.fixedVersion.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
     } else {
         Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(painterResource(Res.drawable.domain_24px), contentDescription = "Externo", modifier = Modifier.height(12.dp))
-            Text(text = issue.project.name ?: "", style = MaterialTheme.typography.labelSmall)
+            Text(text = issue.project.name ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun IssueTags(tags: List<TagDto>, modifier: Modifier = Modifier) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalArrangement = Arrangement.Center, maxLines = 2, modifier = modifier) {
-        tags.forEach { tag ->
-            Row(verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.extraSmall)
-                    .clip(MaterialTheme.shapes.extraSmall)
-                    .drawBehind {
-                        if (tag.color != null) {
-                            drawRect(
-                                color = Color(tag.color),
-                                topLeft = Offset(0f, 0f),
-                                size = Size(4.dp.toPx(), size.height)
-                            )
-                        }
+private fun IssueTags(issueId: Long, tags: List<TagDto>, modifier: Modifier = Modifier) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalArrangement = Arrangement.Center, maxLines = 2, modifier = modifier.padding(2.dp)) {
+        val clipboard = LocalClipboard.current
+        val coroutineScope = rememberCoroutineScope()
+        Box(
+            modifier = Modifier
+                .clickable(onClick = {
+                    coroutineScope.launch {
+                        clipboard.setClipEntry(
+                            ClipEntry(StringSelection(issueId.toString()))
+                        )
                     }
-                    .padding(vertical = 2.dp, horizontal = 8.dp)
-            ) {
-                TooltipBox(
-                    tooltip = { PlainTooltip { Text(tag.name) } },
-                    content = {
-                        Text(tag.name.abbreviate(10), style = MaterialTheme.typography.labelSmall)
-                    },
-                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
-                    state = rememberTooltipState()
-                )
-            }
+                })
+                .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.extraSmall)
+                .clip(MaterialTheme.shapes.extraSmall)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape = MaterialTheme.shapes.extraSmall)
+                .padding(top = 2.dp, bottom = 2.dp, start = 6.dp, end = 6.dp)
+        ) {
+            Text(
+                text = "# $issueId",
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 8.sp
+            )
+        }
+        tags.forEach { tag ->
+            TooltipBox(
+                tooltip = { PlainTooltip { Text(tag.name) } },
+                content = {
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.extraSmall)
+                            .clip(MaterialTheme.shapes.extraSmall)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape = MaterialTheme.shapes.extraSmall)
+                            .padding(top = 2.dp, bottom = 2.dp, start = 4.dp, end = 6.dp)
+                    ) {
+                        if (tag.color != null && Color(tag.color) != Color.Transparent) {
+                            Box(Modifier.size(10.dp).clip(CircleShape).background(Color(tag.color)))
+                        } else {
+                            Icon(painterResource(Res.drawable.bookmark_24px), null, modifier = Modifier.size(10.dp))
+                        }
+                        Text(tag.name.abbreviate(10), style = MaterialTheme.typography.labelSmall, fontSize = 8.sp)
+                    }
+                },
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+                state = rememberTooltipState()
+            )
         }
     }
 }
