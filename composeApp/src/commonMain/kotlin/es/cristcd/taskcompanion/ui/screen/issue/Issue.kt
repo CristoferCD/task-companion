@@ -34,6 +34,7 @@ import es.cristcd.taskcompanion.redmine.dto.ExtendedIssueDto
 import es.cristcd.taskcompanion.redmine.dto.JournalDetailDto
 import es.cristcd.taskcompanion.redmine.dto.JournalDto
 import es.cristcd.taskcompanion.redmine.model.*
+import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.PriorityIcon
 import es.cristcd.taskcompanion.ui.common.StatusBadge
@@ -204,7 +205,8 @@ fun Issue(
                     project,
                     versions,
                     updateAttribute = { onAction(IssueAction.UpdateAttribute(it)) },
-                    downloadFile = { onAction(IssueAction.DownloadFile(it)) }
+                    downloadFile = { onAction(IssueAction.DownloadFile(it)) },
+                    onRelationClick = { navController.navigate(Screen.Issue(it))}
                 )
             }
 
@@ -230,7 +232,8 @@ fun IssueSidebar(
     project: Project?,
     versions: List<Version>,
     updateAttribute: (IssueForm) -> Unit,
-    downloadFile: (Attachment) -> Unit
+    downloadFile: (Attachment) -> Unit,
+    onRelationClick: (Long) -> Unit
 ) {
     Column(Modifier.widthIn(50.dp, 250.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SidebarItem("Properties") {
@@ -285,8 +288,17 @@ fun IssueSidebar(
                         RelationType.COPIED_TO -> Res.drawable.content_copy_24px to "Copied to $otherId"
                         RelationType.COPIED_FROM -> Res.drawable.content_copy_24px to "Copied from $otherId"
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(painterResource(iconAndText.first), contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable(onClick = { onRelationClick(otherId) })
+                    ) {
+                        Icon(
+                            painterResource(iconAndText.first),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.Gray
+                        )
                         Text(iconAndText.second, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
