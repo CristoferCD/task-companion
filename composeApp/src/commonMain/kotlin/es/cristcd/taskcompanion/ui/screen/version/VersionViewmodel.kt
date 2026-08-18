@@ -3,18 +3,27 @@ package es.cristcd.taskcompanion.ui.screen.version
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.*
+import es.cristcd.taskcompanion.filter.ColumnDefinition
+import es.cristcd.taskcompanion.filter.VisibleColumnsService
+import es.cristcd.taskcompanion.filter.form.ColumnSelectionForm
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.*
+import es.cristcd.taskcompanion.util.toDefaultFormatString
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import kotlin.collections.emptyList
+import kotlin.time.Duration.Companion.seconds
 
 class VersionViewmodel : ViewModel() {
     val version: StateFlow<VersionResult>
@@ -24,6 +33,8 @@ class VersionViewmodel : ViewModel() {
         viewModelScope.launch {
             version.emit(VersionResult.Loading)
             val redmineVersion = RedmineService.getVersion(versionId)
+            val project = redmineVersion.project.id?.let { RedmineService.getProject(it) }
+            val visibleColumns = VisibleColumnsService.loadVisibleColumns(project)
             val issuePager = Pager(
                 config = PagingConfig(
                     pageSize = 50,
@@ -32,7 +43,39 @@ class VersionViewmodel : ViewModel() {
             ).flow.cachedIn(viewModelScope)
             val analytics = IssueListAnalytics(0, emptyList(), emptyList(), emptyList(), 0) //calculateAnalytics(issues)
             val following = isFollowingVersion(redmineVersion.id)
-            version.emit(VersionResult.Ok(redmineVersion, following, issuePager, analytics))
+            version.emit(VersionResult.Ok(redmineVersion, following, issuePager, analytics, visibleColumns))
+        }
+    }
+
+    fun updateColumnSelection(updatedColumn: ColumnDefinition) {
+        viewModelScope.launch {
+            version.update {
+                when (it) {
+                    is VersionResult.Ok -> {
+                        val currentSelection = it.resultColumns
+                        val updatedSelection = currentSelection.map { col ->
+                            if (col.label == updatedColumn.label) {
+                                updatedColumn
+                            } else {
+                                col
+                            }
+                        }
+                        saveColumnSelection(updatedSelection)
+                        it.copy(resultColumns = updatedSelection)
+                    }
+                    else -> it
+                }
+            }
+        }
+    }
+
+    private var savingColumnSelectionJob : Job? = null
+    private fun saveColumnSelection(columnSelection: List<ColumnDefinition>) {
+        savingColumnSelectionJob?.cancel()
+        savingColumnSelectionJob = viewModelScope.launch {
+            delay(1.seconds)
+            val form = columnSelection.map { ColumnSelectionForm(it.visibleIndex, it.label) }
+            VisibleColumnsService.updatePreferences(form)
         }
     }
 
@@ -88,7 +131,7 @@ private fun List<RedmineIssue>.getAnalyticsBy(key: (RedmineIssue) -> IdString?) 
 
 sealed interface VersionResult {
     data object Loading : VersionResult
-    data class Ok(val version: Version, val following: Boolean, val issueList: Flow<PagingData<RedmineIssue>>, val analytics: IssueListAnalytics) : VersionResult
+    data class Ok(val version: Version, val following: Boolean, val issueList: Flow<PagingData<RedmineIssue>>, val analytics: IssueListAnalytics, val resultColumns: List<ColumnDefinition>) : VersionResult
 }
 
 private class IssueListPagingSource(val versionId: Long) : PagingSource<Int, RedmineIssue>() {

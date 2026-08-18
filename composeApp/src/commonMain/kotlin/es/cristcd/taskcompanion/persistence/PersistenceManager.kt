@@ -13,6 +13,7 @@ import es.cristcd.taskcompanion.persistence.model.Status
 import es.cristcd.taskcompanion.persistence.model.Tag
 import es.cristcd.taskcompanion.persistence.model.Task
 import es.cristcd.taskcompanion.persistence.model.UserPreferences
+import es.cristcd.taskcompanion.persistence.model.VisibleTableColumns
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
@@ -50,7 +51,8 @@ object PersistenceManager {
                 Status,
                 Tag,
                 Task,
-                UserPreferences
+                UserPreferences,
+                VisibleTableColumns
             )
 
             MigrationUtils.statementsRequiredForDatabaseMigration(
@@ -66,7 +68,8 @@ object PersistenceManager {
                 Status,
                 Tag,
                 Task,
-                UserPreferences
+                UserPreferences,
+                VisibleTableColumns
             ).forEach {
                 log.info { "Executing migration: $it" }
                 exec(it)

@@ -76,7 +76,7 @@ class DashboardViewmodel : ViewModel() {
             val version = RedmineService.getVersion(it)
             val issues = RedmineService.listIssuesByVersion(it, 0, 100)
             val analytics = calculateAnalytics(issues)
-            VersionResult.Ok(version, true, emptyFlow(), analytics)
+            VersionResult.Ok(version, true, emptyFlow(), analytics, emptyList())
         }
     }
 

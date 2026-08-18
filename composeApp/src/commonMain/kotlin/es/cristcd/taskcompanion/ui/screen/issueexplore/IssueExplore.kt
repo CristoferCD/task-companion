@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.paging.compose.collectAsLazyPagingItems
+import es.cristcd.taskcompanion.filter.ColumnDefinition
 import es.cristcd.taskcompanion.redmine.model.Query
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
@@ -27,12 +28,17 @@ fun IssueExploreScreen(filter: IssueFilter, navController: NavHostController, vi
     val state = viewmodel.exploreState.collectAsState()
     when (val result = state.value) {
         is ExploreResult.Loading -> FullscreenLoading(onCancel = { navController.popBackStackIfResumed() })
-        is ExploreResult.Ok -> IssueExplore(result, navController, viewmodel::onFilterChange)
+        is ExploreResult.Ok -> IssueExplore(result, navController, viewmodel::onFilterChange, viewmodel::updateColumnSelection)
     }
 }
 
 @Composable
-fun IssueExplore(result: ExploreResult.Ok, navController: NavHostController, onFilterChange: (IssueFilter) -> Unit) {
+fun IssueExplore(
+    result: ExploreResult.Ok,
+    navController: NavHostController,
+    onFilterChange: (IssueFilter) -> Unit,
+    onColumnVisibilityChange: (ColumnDefinition) -> Unit = {},
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -65,7 +71,11 @@ fun IssueExplore(result: ExploreResult.Ok, navController: NavHostController, onF
             }
 
             val issues = result.issues.collectAsLazyPagingItems()
-            IssueTable(issues, { issue -> navController.navigate(Screen.Issue(issue.id)) })
+            IssueTable(
+                issues,
+                result.resultColumns,
+                onColumnVisibilityChange = onColumnVisibilityChange,
+                onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
         }
     }
 }

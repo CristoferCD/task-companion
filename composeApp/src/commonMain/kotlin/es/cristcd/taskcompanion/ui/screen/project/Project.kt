@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.paging.compose.collectAsLazyPagingItems
+import es.cristcd.taskcompanion.filter.ColumnDefinition
 import es.cristcd.taskcompanion.redmine.model.Version
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
@@ -34,15 +35,19 @@ fun ProjectScreen(projectId: Long, navController: NavHostController, viewmodel: 
         viewmodel.load(projectId)
     }
 
-    val state = viewmodel.version.collectAsState()
+    val state = viewmodel.project.collectAsState()
     when (val result = state.value) {
         is ProjectResult.Loading -> FullscreenLoading(onCancel = { navController.popBackStackIfResumed() })
-        is ProjectResult.Ok -> Project(result, navController)
+        is ProjectResult.Ok -> Project(result, navController, onColumnVisibilityChange = viewmodel::updateColumnSelection)
     }
 }
 
 @Composable
-fun Project(project: ProjectResult.Ok, navController: NavHostController) {
+fun Project(
+    project: ProjectResult.Ok,
+    navController: NavHostController,
+    onColumnVisibilityChange: (ColumnDefinition) -> Unit = {},
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -69,7 +74,7 @@ fun Project(project: ProjectResult.Ok, navController: NavHostController) {
             }
             if (selectedTabIndex == 0) {
                 val issues = project.recentIssues.collectAsLazyPagingItems()
-                IssueTable(issues, onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
+                IssueTable(issues, project.resultColumns, onColumnVisibilityChange = onColumnVisibilityChange, onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
             } else if (selectedTabIndex == 1) {
                 VersionList(project.versions, onClick = { navController.navigate(Screen.Version(it.id)) })
             }

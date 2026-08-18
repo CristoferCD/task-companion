@@ -3,15 +3,21 @@ package es.cristcd.taskcompanion.ui.screen.issueexplore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.*
+import es.cristcd.taskcompanion.filter.ColumnDefinition
+import es.cristcd.taskcompanion.filter.VisibleColumnsService
+import es.cristcd.taskcompanion.filter.form.ColumnSelectionForm
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.RedmineIssue
 import es.cristcd.taskcompanion.ui.screen.dashboard.RedmineQueriesByProject
+import es.cristcd.taskcompanion.ui.screen.version.VersionResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlin.collections.map
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class IssueExploreViewmodel: ViewModel() {
 
@@ -39,8 +45,41 @@ class IssueExploreViewmodel: ViewModel() {
                 RedmineQueriesByProject(foundProject?.name ?: "Todos los proyectos", queries)
             }
             val filterOptions = FilterOptions(queriesByProject)
+            val visibleColumns = VisibleColumnsService.loadVisibleColumns(null)
 
-            exploreState.emit(ExploreResult.Ok(issuePager, filter, filterOptions))
+            exploreState.emit(ExploreResult.Ok(issuePager, filter, filterOptions, visibleColumns))
+        }
+    }
+
+    fun updateColumnSelection(updatedColumn: ColumnDefinition) {
+        viewModelScope.launch {
+            exploreState.update {
+                when (it) {
+                    is ExploreResult.Ok -> {
+                        val currentSelection = it.resultColumns
+                        val updatedSelection = currentSelection.map { col ->
+                            if (col.label == updatedColumn.label) {
+                                updatedColumn
+                            } else {
+                                col
+                            }
+                        }
+                        saveColumnSelection(updatedSelection)
+                        it.copy(resultColumns = updatedSelection)
+                    }
+                    else -> it
+                }
+            }
+        }
+    }
+
+    private var savingColumnSelectionJob : Job? = null
+    private fun saveColumnSelection(columnSelection: List<ColumnDefinition>) {
+        savingColumnSelectionJob?.cancel()
+        savingColumnSelectionJob = viewModelScope.launch {
+            delay(1.seconds)
+            val form = columnSelection.map { ColumnSelectionForm(it.visibleIndex, it.label) }
+            VisibleColumnsService.updatePreferences(form)
         }
     }
 
@@ -61,7 +100,7 @@ class IssueExploreViewmodel: ViewModel() {
 
 sealed interface ExploreResult {
     data object Loading: ExploreResult
-    data class Ok(val issues: Flow<PagingData<RedmineIssue>>, val filter: IssueFilter, val filterOptions: FilterOptions): ExploreResult
+    data class Ok(val issues: Flow<PagingData<RedmineIssue>>, val filter: IssueFilter, val filterOptions: FilterOptions,  val resultColumns: List<ColumnDefinition>): ExploreResult
 }
 
 data class FilterOptions(val queriesByProject: List<RedmineQueriesByProject>)

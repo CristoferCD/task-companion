@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -25,8 +26,12 @@ import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import es.cristcd.taskcompanion.filter.ColumnDefinition
 import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
+import es.cristcd.taskcompanion.redmine.model.MultipleCustomField
 import es.cristcd.taskcompanion.redmine.model.RedmineIssue
+import es.cristcd.taskcompanion.redmine.model.SimpleCustomField
+import es.cristcd.taskcompanion.redmine.model.storyPoints
 import es.cristcd.taskcompanion.tracker.SettingsCache
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
@@ -42,6 +47,7 @@ import ir.ehsannarmani.compose_charts.models.Bars
 import ir.ehsannarmani.compose_charts.models.Pie
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
+import kotlin.comparisons.compareBy
 import kotlin.time.ExperimentalTime
 
 
@@ -55,13 +61,18 @@ fun VersionScreen(id: Long, navController: NavHostController, viewmodel: Version
     val state = viewmodel.version.collectAsState()
     when (val result = state.value) {
         is VersionResult.Loading -> FullscreenLoading(onCancel = { navController.popBackStackIfResumed() })
-        is VersionResult.Ok -> Version(result, navController, viewmodel::toggleFollowVersion)
+        is VersionResult.Ok -> Version(result, navController, viewmodel::toggleFollowVersion, viewmodel::updateColumnSelection)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Version(version: VersionResult.Ok, navController: NavHostController, onFollowVersion: () -> Unit) {
+fun Version(
+    version: VersionResult.Ok,
+    navController: NavHostController,
+    onFollowVersion: () -> Unit,
+    onColumnVisibilityChange: (ColumnDefinition) -> Unit = {},
+) {
     var showChartsDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val scrollState = scrollBehavior.state
@@ -160,7 +171,11 @@ fun Version(version: VersionResult.Ok, navController: NavHostController, onFollo
             }
 
             val issues = version.issueList.collectAsLazyPagingItems()
-            IssueTable(issues, onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
+            IssueTable(
+                issues,
+                version.resultColumns,
+                onColumnVisibilityChange = onColumnVisibilityChange,
+                onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
         }
     }
 }
@@ -263,18 +278,83 @@ fun RowChartByCategory(analytics: IssueListAnalytics) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun IssueTable(issues: LazyPagingItems<RedmineIssue>, onClick: (RedmineIssue) -> Unit) {
+fun IssueTable(
+    issues: LazyPagingItems<RedmineIssue>,
+    columnDefinitions: List<ColumnDefinition> = emptyList(),
+    onColumnVisibilityChange: (ColumnDefinition) -> Unit = {},
+    onClick: (RedmineIssue) -> Unit
+) {
     val columnWidths = remember { mutableStateMapOf<Int, Int>() }
+    val visibleColumns = remember(columnDefinitions) {
+        derivedStateOf {
+            columnDefinitions.filter { it.visibleIndex != null }
+                .sortedBy { it.visibleIndex }
+        }
+    }
     LazyColumn(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
         item {
+            Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+
+                var expandColumnSettings by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expandColumnSettings,
+                    onExpandedChange = { expandColumnSettings = it },
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
+                    IconButton(onClick = { expandColumnSettings = true }) {
+                        Icon(painterResource(Res.drawable.table_edit_24px), contentDescription = null)
+                    }
+                    ExposedDropdownMenu(
+                        expanded = expandColumnSettings,
+                        onDismissRequest = { expandColumnSettings = false },
+                        modifier = Modifier.width(IntrinsicSize.Min)
+                    ) {
+                        columnDefinitions.sortedWith(compareBy<ColumnDefinition, Int?>(nullsLast()) { it.visibleIndex }.thenBy { it.label.lowercase() })
+                            .forEachIndexed { index, option ->
+                                val selected = option.visibleIndex != null
+                                DropdownMenuItem(
+                                    text = { Text(option.label) },
+                                    selected = selected,
+                                    shapes = MenuDefaults.itemShape(index, columnDefinitions.size),
+                                    trailingIcon = {
+                                        if (selected) {
+                                            Icon(painterResource(Res.drawable.visibility_24px), contentDescription = null)
+                                        } else {
+                                            Icon(
+                                                painterResource(Res.drawable.visibility_off_24px),
+                                                contentDescription = null
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        val newIndex =
+                                            if (selected) null else columnDefinitions.count { it.visibleIndex != null }
+                                        onColumnVisibilityChange(option.copy(visibleIndex = newIndex))
+                                    }
+                                )
+                            }
+                    }
+
+                }
+            }
+        }
+        item {
             Column {
-                Row(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(modifier = Modifier.widthPx(columnWidths[0] ?: 0).padding(start = 2.dp), text = "Estado", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
                     Text(modifier = Modifier.widthPx(columnWidths[1] ?: 0), text = "", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
                     Text(modifier = Modifier.weight(1f), text = "Asunto", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
-                    Text(modifier = Modifier.widthPx(columnWidths[2] ?: 0), text = "Asignado a", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
-                    Text(modifier = Modifier.widthPx(columnWidths[3] ?: 0), text = "Actualizado", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+                    visibleColumns.value.forEachIndexed { index, definition ->
+                        Text(
+                            modifier = Modifier.width(IntrinsicSize.Min).fillMaxHeight()
+                                .maxWidthForColumn(columnWidths, 2 + index),
+                            text = definition.label,
+                            style = MaterialTheme.typography.labelMedium,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
                 HorizontalDivider()
             }
@@ -299,15 +379,13 @@ fun IssueTable(issues: LazyPagingItems<RedmineIssue>, onClick: (RedmineIssue) ->
                             text = issue.subject,
                             style = MaterialTheme.typography.bodyMedium
                         )
-
-                        Box(Modifier.widthIn(0.dp, 100.dp).maxWidthForColumn(columnWidths, 2)) {
-                            Text(text = issue.assignedTo?.name ?: "", style = MaterialTheme.typography.bodySmall)
-                        }
-                        Box(Modifier.maxWidthForColumn(columnWidths, 3)) {
-                            Text(
-                                issue.updatedOn?.toDefaultFormatString() ?: "",
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                        visibleColumns.value.forEachIndexed { index, definition ->
+                            Box(Modifier.widthIn(max = 80.dp).maxWidthForColumn(columnWidths, 2+index)) {
+                                Text(
+                                    definition.content(issue),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
                     }
                     HorizontalDivider()
