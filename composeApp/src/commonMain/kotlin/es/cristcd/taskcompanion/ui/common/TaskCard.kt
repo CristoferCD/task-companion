@@ -159,6 +159,7 @@ private fun TaskParent(issue: IssueListItemDto) {
 private fun IssueTags(issueId: Long, tags: List<TagDto>, modifier: Modifier = Modifier) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalArrangement = Arrangement.Center, maxLines = 2, modifier = modifier.padding(2.dp)) {
         val clipboard = LocalClipboard.current
+        val snackbarController = SnackbarController.current
         val coroutineScope = rememberCoroutineScope()
         Box(
             modifier = Modifier
@@ -167,11 +168,12 @@ private fun IssueTags(issueId: Long, tags: List<TagDto>, modifier: Modifier = Mo
                         clipboard.setClipEntry(
                             ClipEntry(StringSelection(issueId.toString()))
                         )
+                        snackbarController.showMessage("$issueId copiado")
                     }
                 })
                 .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.extraSmall)
                 .clip(MaterialTheme.shapes.extraSmall)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape = MaterialTheme.shapes.extraSmall)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), shape = MaterialTheme.shapes.extraSmall)
                 .padding(top = 2.dp, bottom = 2.dp, start = 6.dp, end = 6.dp)
         ) {
             Text(
@@ -189,7 +191,7 @@ private fun IssueTags(issueId: Long, tags: List<TagDto>, modifier: Modifier = Mo
                         modifier = Modifier
                             .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.extraSmall)
                             .clip(MaterialTheme.shapes.extraSmall)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape = MaterialTheme.shapes.extraSmall)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), shape = MaterialTheme.shapes.extraSmall)
                             .padding(top = 2.dp, bottom = 2.dp, start = 4.dp, end = 6.dp)
                     ) {
                         if (tag.color != null && Color(tag.color) != Color.Transparent) {
