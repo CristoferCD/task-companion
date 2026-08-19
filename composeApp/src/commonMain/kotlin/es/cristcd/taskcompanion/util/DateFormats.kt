@@ -1,5 +1,6 @@
 package es.cristcd.taskcompanion.util
 
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
@@ -8,16 +9,27 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 fun Instant.toRelativeHumanReadableString(): String {
     return when (val duration = Clock.System.now() - this) {
-        in 0.minutes ..< 1.minutes ->  "Ahora"
+        in 0.milliseconds ..< 1.minutes ->  "Ahora"
         in 1.minutes ..< 1.hours ->  "Hace ${duration.inWholeMinutes.toInt()} minutos"
         in 1.hours ..< 1.days ->  "Hace ${duration.inWholeHours.toInt()} horas"
         in 1.days ..< 30.days ->  "Hace ${duration.inWholeDays.toInt()} dias"
         else -> this.toDefaultFormatString()
+    }
+}
+
+fun Instant.toRelativeDayString(): String {
+    val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val thisDate = this.toLocalDateTime(TimeZone.currentSystemDefault()).date
+    return if (currentDate == thisDate) {
+        "Hoy"
+    } else {
+        thisDate.toString()
     }
 }
 

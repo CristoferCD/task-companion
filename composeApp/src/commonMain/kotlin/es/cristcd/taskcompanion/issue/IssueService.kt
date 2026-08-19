@@ -12,8 +12,10 @@ import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.json.extract
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import es.cristcd.taskcompanion.persistence.model.RedmineIssue as RedmineIssueTable
 
 object IssueService {
 
@@ -138,15 +140,11 @@ object IssueService {
                 .where { Status.redmineStatusId inList redmineIssues.mapNotNull { it.status.id }}
                 .associate { it[Status.redmineStatusId] to it[Status.id] }
 
-            redmineIssues.forEach { issue ->
-                Issue.upsert(
-                    keys = arrayOf(Issue.redmineId),
-                ) {
-                    it[Issue.subject] = issue.subject
-                    it[Issue.status] = statuses[issue.status.id]
-                    it[Issue.redmineId] = issue.id
-                    it[Issue.updatedOn] = issue.updatedOn
-                }
+            Issue.batchUpsert(keys = arrayOf(Issue.redmineId), data = redmineIssues) { issue ->
+                this[Issue.subject] = issue.subject
+                this[Issue.status] = statuses[issue.status.id]
+                this[Issue.redmineId] = issue.id
+                this[Issue.updatedOn] = issue.updatedOn
             }
         }
     }
@@ -268,6 +266,22 @@ object IssueService {
             Tag.update(where = { Tag.id eq tagId }) {
                 it[Tag.deleted] = true
             }
+        }
+    }
+
+    fun getLastAccessedIssues() : List<IssueHistoryItemDto> {
+        return transaction {
+            Issue.join(Status, JoinType.INNER)
+                .join(
+                    RedmineIssueTable,
+                    JoinType.INNER,
+                    onColumn = Issue.redmineId,
+                    otherColumn = RedmineIssueTable.data.extract<Long>(".id"),
+                )
+                .select(Issue.columns + Status.columns + RedmineIssueTable.updatedAt)
+                .orderBy(RedmineIssueTable.updatedAt to SortOrder.DESC)
+                .limit(50)
+                .map { it.toHistoryItemDto()}
         }
     }
 }

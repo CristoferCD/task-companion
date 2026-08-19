@@ -32,6 +32,7 @@ import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.TaskCard
 import es.cristcd.taskcompanion.ui.common.VersionCard
+import es.cristcd.taskcompanion.ui.screen.history.History
 import es.cristcd.taskcompanion.ui.screen.projectlist.ProjectList
 import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
 import kotlinx.coroutines.delay
@@ -197,6 +198,11 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                             ProjectList(navController = navController)
                         }
                     }
+                    SidebarNavigation.History -> {
+                        Box(modifier = Modifier.width(400.dp).fillMaxHeight()) {
+                            History(navController = navController)
+                        }
+                    }
                 }
             }
 
@@ -211,6 +217,9 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                 }
                 IconButton(onClick = { sidebarNavigation = sidebarNavigation.toggle(SidebarNavigation.Projects) }, colors = if (sidebarNavigation == SidebarNavigation.Projects) IconButtonDefaults.iconButtonColors(containerColor = selectedColor) else IconButtonDefaults.iconButtonColors()) {
                     Icon(painterResource(Res.drawable.team_dashboard_24px), contentDescription = null)
+                }
+                IconButton(onClick = { sidebarNavigation = sidebarNavigation.toggle(SidebarNavigation.History) }, colors = if (sidebarNavigation == SidebarNavigation.History) IconButtonDefaults.iconButtonColors(containerColor = selectedColor) else IconButtonDefaults.iconButtonColors()) {
+                    Icon(painterResource(Res.drawable.history_24px), contentDescription = null)
                 }
                 Spacer(Modifier.weight(1f))
                 Column {

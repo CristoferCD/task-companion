@@ -33,7 +33,6 @@ import java.awt.datatransfer.StringSelection
 import kotlin.math.max
 import kotlin.time.Instant
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TaskCard(issue: IssueListItemDto, newItemAlphaAnimation: Animatable<Float, AnimationVector1D>, onClick: () -> Unit = {}, onStart: () -> Unit, onUpdateTags: (tags: List<TagDto>) -> Unit) {
     ElevatedCard(

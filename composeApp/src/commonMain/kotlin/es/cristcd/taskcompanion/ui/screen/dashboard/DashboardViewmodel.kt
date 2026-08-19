@@ -320,6 +320,7 @@ sealed interface SidebarNavigation {
     data object None: SidebarNavigation
     data object Tracker : SidebarNavigation
     data object Projects: SidebarNavigation
+    data object History: SidebarNavigation
 
     fun toggle(target: SidebarNavigation): SidebarNavigation {
         return if (this == target) {

@@ -7,7 +7,9 @@ import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.core.CachedResult
 import es.cristcd.taskcompanion.core.loadCaching
 import es.cristcd.taskcompanion.persistence.model.Category
+import es.cristcd.taskcompanion.persistence.model.Issue
 import es.cristcd.taskcompanion.persistence.model.RedmineIssue
+import es.cristcd.taskcompanion.persistence.model.Status
 import es.cristcd.taskcompanion.persistence.model.UserPreferences
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.dto.ExtendedIssueDto
@@ -100,6 +102,18 @@ class IssueViewmodel : ViewModel() {
                         currentId?.let { id -> it[RedmineIssue.id] = id }
                         it[data] = issue
                         it[updatedAt] = Clock.System.now()
+                    }
+
+                    val status = Status.select(Status.id)
+                        .where { Status.redmineStatusId eq issue.status.id }
+                        .firstOrNull()?.let { it[Status.id] }
+                    Issue.upsert(
+                        keys = arrayOf(Issue.redmineId),
+                    ) {
+                        it[Issue.subject] = issue.subject
+                        it[Issue.status] = status
+                        it[Issue.redmineId] = issue.id
+                        it[Issue.updatedOn] = issue.updatedOn
                     }
                 }
             ).map {
