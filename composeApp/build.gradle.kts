@@ -69,7 +69,7 @@ compose.desktop {
             //suggestRuntimeModules task
             modules("java.instrument", "java.management", "java.sql", "java.naming", "jdk.unsupported")
             packageName = "es.cristcd.taskcompanion"
-            packageVersion = "0.4.7"
+            packageVersion = "0.5.0"
 
             windows {
                 shortcut = true
@@ -79,7 +79,7 @@ compose.desktop {
                 upgradeUuid = "7f4ce14d-1896-4550-87ed-29b333793066"
             }
             macOS {
-                packageVersion = "1.4.7"
+                packageVersion = "1.5.0"
             }
         }
     }
