@@ -32,6 +32,7 @@ import es.cristcd.taskcompanion.issue.dto.TagDto
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.TaskCard
 import es.cristcd.taskcompanion.ui.common.VersionCard
+import es.cristcd.taskcompanion.ui.screen.alerts.Alerts
 import es.cristcd.taskcompanion.ui.screen.history.History
 import es.cristcd.taskcompanion.ui.screen.projectlist.ProjectList
 import es.cristcd.taskcompanion.ui.screen.tracker.Tracker
@@ -203,6 +204,12 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                             History(navController = navController)
                         }
                     }
+                    SidebarNavigation.Alerts -> {
+                        Box(modifier = Modifier.width(400.dp).fillMaxHeight()) {
+                            Alerts(navController = navController)
+                        }
+                    }
+
                 }
             }
 
@@ -224,6 +231,26 @@ fun Dashboard(navController: NavHostController, viewmodel: DashboardViewmodel = 
                 Spacer(Modifier.weight(1f))
                 Column {
                     HorizontalDivider(Modifier.padding(horizontal = 4.dp))
+                    val alertCount = viewmodel.alertCount.collectAsState(0)
+
+                    IconButton(
+                        onClick = { sidebarNavigation = sidebarNavigation.toggle(SidebarNavigation.Alerts) },
+                        colors = if (sidebarNavigation == SidebarNavigation.Alerts) IconButtonDefaults.iconButtonColors(
+                            containerColor = selectedColor
+                        ) else IconButtonDefaults.iconButtonColors()
+                    ) {
+                        BadgedBox(
+                            badge = {
+                                if (alertCount.value > 0) {
+                                    Badge {
+                                        Text(alertCount.value.toString(), style = MaterialTheme.typography.labelLarge)
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(painterResource(Res.drawable.notification_important_24px), contentDescription = null)
+                        }
+                    }
                     IconButton(onClick = { navController.navigate(Screen.Settings) }) {
                         Icon(painterResource(Res.drawable.settings_24px), contentDescription = "Settings")
                     }

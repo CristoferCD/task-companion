@@ -22,9 +22,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -445,11 +445,11 @@ fun JournalAttributeChange(modifier: Modifier = Modifier, detail: JournalDetailD
             is JournalDetailDto.AttributeChange -> {
                 Text(detail.name, style = MaterialTheme.typography.labelSmall)
                 Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixedDim).padding(horizontal = 4.dp, vertical = 2.dp)) {
-                    Text(detail.oldValue ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixedVariant)
+                    Text(detail.oldValue ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixedVariant)
                 }
                 Icon(painterResource(Res.drawable.arrow_right_alt_24px), contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
                 Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixed).padding(horizontal = 4.dp, vertical = 2.dp)) {
-                    Text(detail.newValue ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixed)
+                    Text(detail.newValue ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixed)
                 }
             }
             is JournalDetailDto.StatusChange -> {
@@ -461,11 +461,11 @@ fun JournalAttributeChange(modifier: Modifier = Modifier, detail: JournalDetailD
             is JournalDetailDto.Unknown -> {
                 Text("${detail.property} (${detail.name})", style = MaterialTheme.typography.labelSmall)
                 Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixedDim).padding(horizontal = 4.dp, vertical = 2.dp)) {
-                    Text(detail.oldValue.abbreviate(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixedVariant)
+                    Text(detail.oldValue.abbreviate(80), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixedVariant)
                 }
                 Icon(painterResource(Res.drawable.arrow_right_alt_24px), contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
                 Box(Modifier.weight(0.5f, fill = false).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.secondaryFixed).padding(horizontal = 4.dp, vertical = 2.dp)) {
-                    Text(detail.newValue.abbreviate(80), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixed)
+                    Text(detail.newValue.abbreviate(80), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryFixed)
                 }
             }
         }

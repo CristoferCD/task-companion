@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import es.cristcd.taskcompanion.core.CachedResult
 import es.cristcd.taskcompanion.core.loadCaching
+import es.cristcd.taskcompanion.events.IssueUpdatedEventBus
 import es.cristcd.taskcompanion.persistence.model.Category
 import es.cristcd.taskcompanion.persistence.model.Issue
 import es.cristcd.taskcompanion.persistence.model.RedmineIssue
@@ -72,7 +73,6 @@ class IssueViewmodel : ViewModel() {
         return userId
     }
 
-    @OptIn(ExperimentalTime::class)
     fun loadIssue(id: Long) {
         viewModelScope.launch {
             loadCaching(
@@ -119,7 +119,10 @@ class IssueViewmodel : ViewModel() {
             ).map {
                 when(it) {
                     is CachedResult.FromApi -> CachedResult.FromApi(it.issue.toDto())
-                    is CachedResult.FromDb -> CachedResult.FromDb(it.issue.toDto(), it.updatedAt)
+                    is CachedResult.FromDb -> {
+                        IssueUpdatedEventBus.clearChange(it.issue.id)
+                        CachedResult.FromDb(it.issue.toDto(), it.updatedAt)
+                    }
                     CachedResult.Loading -> CachedResult.Loading
                 }
             }.collect { issue.emit(it) }

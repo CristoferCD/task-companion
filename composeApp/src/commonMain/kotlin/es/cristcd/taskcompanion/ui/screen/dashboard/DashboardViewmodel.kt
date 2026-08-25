@@ -2,6 +2,7 @@ package es.cristcd.taskcompanion.ui.screen.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import es.cristcd.taskcompanion.events.IssueUpdatedEventBus
 import es.cristcd.taskcompanion.issue.IssueService
 import es.cristcd.taskcompanion.issue.dto.IssueListDto
 import es.cristcd.taskcompanion.issue.dto.IssueListItemDto
@@ -25,6 +26,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
@@ -42,6 +44,8 @@ class DashboardViewmodel : ViewModel() {
     val layoutItems: StateFlow<List<DashboardGroup>>
         field = MutableStateFlow(emptyList())
     private var reloadingJob: Job? = null
+
+    val alertCount = IssueUpdatedEventBus.unreadUpdatedEvents.map { it.count() }
 
     val tagFilter: StateFlow<List<TagFilterChip>>
         field = MutableStateFlow(emptyList())
@@ -321,6 +325,7 @@ sealed interface SidebarNavigation {
     data object Tracker : SidebarNavigation
     data object Projects: SidebarNavigation
     data object History: SidebarNavigation
+    data object Alerts: SidebarNavigation
 
     fun toggle(target: SidebarNavigation): SidebarNavigation {
         return if (this == target) {

@@ -3,10 +3,9 @@ package es.cristcd.taskcompanion.redmine.dto
 import es.cristcd.taskcompanion.redmine.model.*
 import es.cristcd.taskcompanion.tracker.dto.StatusDto
 import kotlinx.datetime.LocalDate
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-data class ExtendedIssueDto @OptIn(ExperimentalTime::class) constructor(
+data class ExtendedIssueDto(
     val id: Long,
     val project: IdString,
     val tracker: IdString,
@@ -34,7 +33,7 @@ data class ExtendedIssueDto @OptIn(ExperimentalTime::class) constructor(
     val attachments: List<Attachment> = emptyList(),
 )
 
-data class JournalDto @OptIn(ExperimentalTime::class) constructor(
+data class JournalDto(
     val id: Long,
     val user: IdString,
     val notes: String?,
@@ -46,5 +45,6 @@ data class JournalDto @OptIn(ExperimentalTime::class) constructor(
 sealed interface JournalDetailDto {
     data class AttributeChange(val name: String, val oldValue: String?, val newValue: String?) : JournalDetailDto
     data class StatusChange(val name: String, val oldValue: StatusDto?, val newValue: StatusDto?) : JournalDetailDto
-    data class Unknown(val property: String, val name: String, val oldValue: String?, val newValue: String?) : JournalDetailDto
+    data class Unknown(val property: String, val name: String, val oldValue: String?, val newValue: String?) :
+        JournalDetailDto
 }

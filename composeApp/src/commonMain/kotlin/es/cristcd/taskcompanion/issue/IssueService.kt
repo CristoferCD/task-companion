@@ -1,5 +1,7 @@
 package es.cristcd.taskcompanion.issue
 
+import es.cristcd.taskcompanion.events.ChangedIssue
+import es.cristcd.taskcompanion.events.IssueUpdatedEventBus
 import es.cristcd.taskcompanion.issue.dto.*
 import es.cristcd.taskcompanion.issue.form.NewTagForm
 import es.cristcd.taskcompanion.persistence.model.Issue
@@ -48,6 +50,7 @@ object IssueService {
         val tagsInDb = listTagsByIssue(redmineIds)
         val changedIssues = listChangedIssues(redmineIssues)
 
+        IssueUpdatedEventBus.notifyChanges(changedIssues)
         updateIssuesFromRedmine(redmineIssues)
         val mergedTags = updateTagsWithExtracted(tagsInDb, redmineIssues)
 
@@ -64,7 +67,7 @@ object IssueService {
                 subject = tagInfo.cleanTitle,
                 updatedOn = it.updatedOn,
                 fixedVersion = it.fixedVersion,
-                recentlyChanged = changedIssues.contains(it.id),
+                recentlyChanged = changedIssues.any { changed -> changed.redmineId == it.id },
                 tagInfo.tags,
             )
         }
@@ -149,7 +152,7 @@ object IssueService {
         }
     }
 
-    private fun listChangedIssues(redmineIssues: List<RedmineIssue>): List<Long> {
+    private fun listChangedIssues(redmineIssues: List<RedmineIssue>): List<ChangedIssue> {
         return transaction {
             Issue.select(Issue.redmineId, Issue.updatedOn)
                 .where {
@@ -157,10 +160,15 @@ object IssueService {
                 }
                 .filter { dbIssue ->
                     redmineIssues.any { it.id == dbIssue[Issue.redmineId] && it.updatedOn != dbIssue[Issue.updatedOn] }
+                            && dbIssue[Issue.redmineId] != null && dbIssue[Issue.updatedOn] != null
                 }
-                .mapNotNull { it[Issue.redmineId] }
+                .map { row ->
+                    val redmineIssue = redmineIssues.find { it.id == row[Issue.redmineId] }
+                    ChangedIssue(row[Issue.redmineId]!!, row[Issue.updatedOn]!!, redmineIssue?.updatedOn ?: Clock.System.now())
+                }
         }
     }
+
 
     private fun listTagsByIssue(redmineIds: List<Long>): Map<Long, List<TagInfo>> {
         return transaction {

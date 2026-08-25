@@ -39,7 +39,7 @@ suspend fun ExtendedIssue.toDto(): ExtendedIssueDto {
     )
 }
 
-private suspend fun Journal.toDto(projectId: Long?, customFields: List<CustomField>): JournalDto {
+suspend fun Journal.toDto(projectId: Long?, customFields: List<CustomField>): JournalDto {
     return JournalDto(
         id = id,
         user = user,
@@ -50,7 +50,7 @@ private suspend fun Journal.toDto(projectId: Long?, customFields: List<CustomFie
     )
 }
 
-private suspend fun JournalDetail.toDto(projectId: Long?, customFields: List<CustomField>): JournalDetailDto {
+suspend fun JournalDetail.toDto(projectId: Long?, customFields: List<CustomField>): JournalDetailDto {
     return when(property) {
         "attr" -> {
             when (name) {
