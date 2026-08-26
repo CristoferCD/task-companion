@@ -10,6 +10,7 @@ import es.cristcd.taskcompanion.persistence.model.Status
 import es.cristcd.taskcompanion.persistence.model.Tag
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.RedmineIssue
+import es.cristcd.taskcompanion.util.unaccent
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.core.dao.id.EntityIDFunctionProvider
 import org.jetbrains.exposed.v1.jdbc.*
@@ -116,7 +117,7 @@ object IssueService {
         do {
             val nextTag = extractSingleTagFromStart(finalText)
             if (nextTag != null) {
-                tags.add(TagDto(-1, nextTag.substring(1, nextTag.length - 1)))
+                tags.add(TagDto(-1, nextTag.substring(1, nextTag.length - 1).unaccent()))
                 finalText = finalText.substring(nextTag.length, finalText.length).trim()
             }
         } while (nextTag != null)
@@ -254,7 +255,7 @@ object IssueService {
         transaction {
             Tag.upsert {
                 form.id?.let { tagId -> it[Tag.id] = EntityIDFunctionProvider.createEntityID(tagId, Tag) }
-                it[Tag.name] = form.name
+                it[Tag.name] = form.name.unaccent()
                 it[Tag.color] = form.color
             }
         }
