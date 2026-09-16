@@ -27,6 +27,7 @@ fun main() {
         SnackbarController.showMessage("Error: ${e.localizedMessage}", duration = SnackbarDuration.Indefinite)
     }
     application {
+        AppController.exitApplication = ::exitApplication
         Window(
             onCloseRequest = ::exitApplication,
             title = "TaskCompanion",

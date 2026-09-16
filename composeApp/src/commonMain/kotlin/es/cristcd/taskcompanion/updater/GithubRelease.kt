@@ -8,3 +8,8 @@ data class GithubRelease(val name: String, val publishedAt: Instant, val htmlUrl
 
 @Serializable
 data class ReleaseAsset(val name: String, val contentType: String, val browserDownloadUrl: String)
+
+enum class ReleaseContentType(val value: String) {
+    WINDOWS_MSI("application/x-msdownload"),
+    MAC_DMG("application/x-apple-diskimage"),
+}

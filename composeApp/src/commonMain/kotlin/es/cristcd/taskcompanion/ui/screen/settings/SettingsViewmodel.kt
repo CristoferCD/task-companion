@@ -175,7 +175,9 @@ class SettingsViewmodel : ViewModel() {
     }
 
     fun downloadNewVersion(release: GithubRelease) {
-        Desktop.getDesktop().browse(URI(release.htmlUrl))
+        viewModelScope.launch {
+            UpdaterService.downloadRelease(release)
+        }
     }
 
     fun saveCategory(category: CategoryForm) {

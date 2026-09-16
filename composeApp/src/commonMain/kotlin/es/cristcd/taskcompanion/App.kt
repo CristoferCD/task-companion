@@ -24,7 +24,6 @@ import androidx.savedstate.SavedState
 import androidx.savedstate.read
 import androidx.savedstate.write
 import es.cristcd.taskcompanion.redmine.RedmineCache
-import es.cristcd.taskcompanion.redmine.RedmineUserCacheService
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.SnackbarControllerProvider
 import es.cristcd.taskcompanion.ui.screen.dashboard.Dashboard
@@ -40,9 +39,11 @@ import es.cristcd.taskcompanion.updater.UpdaterService
 import es.cristcd.taskcompanion.util.toDefaultFormatString
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
-import java.awt.Desktop
-import java.net.URI
 import kotlin.reflect.typeOf
+
+object AppController {
+    lateinit var exitApplication: () -> Unit
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -99,6 +100,7 @@ fun App(navController: NavHostController = rememberNavController()) {
 }
 
 private suspend fun checkUpdates(snackbarHostState: SnackbarHostState) {
+    UpdaterService.cleanOldDownloads()
     val latestRelease = UpdaterService.latestGithubRelease()
     if (latestRelease != null) {
         val updateAvailable = UpdaterService.isUpdateAvailable(latestRelease)
@@ -110,7 +112,7 @@ private suspend fun checkUpdates(snackbarHostState: SnackbarHostState) {
             )
             when (snackResult) {
                 SnackbarResult.Dismissed -> return
-                SnackbarResult.ActionPerformed -> Desktop.getDesktop().browse(URI(latestRelease.htmlUrl))
+                SnackbarResult.ActionPerformed -> UpdaterService.downloadRelease(latestRelease)
             }
         }
     }

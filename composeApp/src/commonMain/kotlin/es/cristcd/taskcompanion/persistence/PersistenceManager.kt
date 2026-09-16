@@ -1,26 +1,13 @@
 package es.cristcd.taskcompanion.persistence
 
-import es.cristcd.taskcompanion.persistence.model.Category
-import es.cristcd.taskcompanion.persistence.model.DashboardIssueItem
-import es.cristcd.taskcompanion.persistence.model.DashboardLayout
-import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
-import es.cristcd.taskcompanion.persistence.model.Issue
-import es.cristcd.taskcompanion.persistence.model.IssueTag
-import es.cristcd.taskcompanion.persistence.model.RedmineIssue
-import es.cristcd.taskcompanion.persistence.model.RedmineUser
-import es.cristcd.taskcompanion.persistence.model.RedmineUserInvalidation
-import es.cristcd.taskcompanion.persistence.model.Status
-import es.cristcd.taskcompanion.persistence.model.Tag
-import es.cristcd.taskcompanion.persistence.model.Task
-import es.cristcd.taskcompanion.persistence.model.UserPreferences
-import es.cristcd.taskcompanion.persistence.model.VisibleTableColumns
+import es.cristcd.taskcompanion.persistence.model.*
+import es.cristcd.taskcompanion.util.getAppDataDir
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
-import java.io.File
 import java.sql.Connection
 
 object PersistenceManager {
@@ -78,14 +65,4 @@ object PersistenceManager {
 
         }
     }
-
-    private fun getAppDataDir(): File {
-        val os = System.getProperty("os.name").lowercase()
-        return when {
-            os.contains("win") -> File(System.getenv("LOCALAPPDATA"), ".TaskCompanion")
-            os.contains("mac") -> File(System.getProperty("user.home"), "Library/Application Support/.TaskCompanion")
-            else -> File(System.getProperty("user.home"), ".TaskCompanion")
-        }
-    }
-
 }
