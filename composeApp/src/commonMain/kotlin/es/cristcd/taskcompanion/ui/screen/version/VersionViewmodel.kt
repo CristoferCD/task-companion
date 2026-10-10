@@ -9,12 +9,15 @@ import es.cristcd.taskcompanion.filter.form.ColumnSelectionForm
 import es.cristcd.taskcompanion.persistence.model.FollowedRedmineVersion
 import es.cristcd.taskcompanion.redmine.RedmineService
 import es.cristcd.taskcompanion.redmine.model.*
-import es.cristcd.taskcompanion.util.toDefaultFormatString
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.v1.core.eq
@@ -23,27 +26,40 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.collections.emptyList
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class VersionViewmodel : ViewModel() {
     val version: StateFlow<VersionResult>
         field = MutableStateFlow<VersionResult>(VersionResult.Loading)
 
+    val query: StateFlow<String>
+        field = MutableStateFlow("")
+
+    @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     fun loadVersion(versionId: Long) {
         viewModelScope.launch {
             version.emit(VersionResult.Loading)
             val redmineVersion = RedmineService.getVersion(versionId)
             val project = redmineVersion.project.id?.let { RedmineService.getProject(it) }
             val visibleColumns = VisibleColumnsService.loadVisibleColumns(project)
-            val issuePager = Pager(
-                config = PagingConfig(
-                    pageSize = 50,
-                ),
-                pagingSourceFactory = { IssueListPagingSource(versionId) }
-            ).flow.cachedIn(viewModelScope)
+            val issuePager = query.debounce(300.milliseconds).flatMapLatest { searchQuery ->
+                Pager(
+                    config = PagingConfig(
+                        pageSize = 50,
+                    ),
+                    pagingSourceFactory = { IssueListPagingSource(versionId, searchQuery) }
+                ).flow.cachedIn(viewModelScope)
+            }
             val analytics = IssueListAnalytics(0, emptyList(), emptyList(), emptyList(), 0) //calculateAnalytics(issues)
             val following = isFollowingVersion(redmineVersion.id)
             version.emit(VersionResult.Ok(redmineVersion, following, issuePager, analytics, visibleColumns))
+        }
+    }
+
+    fun updateQuery(queryValue: String) {
+        viewModelScope.launch {
+            query.emit(queryValue)
         }
     }
 
@@ -134,10 +150,10 @@ sealed interface VersionResult {
     data class Ok(val version: Version, val following: Boolean, val issueList: Flow<PagingData<RedmineIssue>>, val analytics: IssueListAnalytics, val resultColumns: List<ColumnDefinition>) : VersionResult
 }
 
-private class IssueListPagingSource(val versionId: Long) : PagingSource<Int, RedmineIssue>() {
+private class IssueListPagingSource(val versionId: Long, val searchQuery: String) : PagingSource<Int, RedmineIssue>() {
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, RedmineIssue> {
         val offset = params.key ?: 0
-        val items = RedmineService.listIssuesByVersion(versionId, offset, params.loadSize)
+        val items = RedmineService.listIssuesByVersion(versionId, searchQuery, offset, params.loadSize)
 
         return LoadResult.Page(
             data = items.issues,

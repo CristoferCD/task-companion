@@ -77,11 +77,14 @@ object RedmineService {
         return null
     }
 
-    suspend fun listIssuesByVersion(versionId: Long, offset: Int, limit: Int): IssueList {
+    suspend fun listIssuesByVersion(versionId: Long, subjectQuery: String, offset: Int, limit: Int): IssueList {
         return client.get("issues.json") {
             url {
                 parameter("fixed_version_id", versionId)
                 parameter("status_id", "*")
+                if (subjectQuery.isNotBlank()) {
+                    parameter("subject", "~$subjectQuery")
+                }
                 parameter("sort", "status")
                 parameter("limit", limit)
                 parameter("offset", offset)
@@ -124,10 +127,13 @@ object RedmineService {
         }.body()
     }
 
-    suspend fun listIssuesByProject(projectId: Long, offset: Int, limit: Int): IssueList {
+    suspend fun listIssuesByProject(projectId: Long, subjectQuery: String, offset: Int, limit: Int): IssueList {
         return client.get("issues.json") {
             parameter("project_id", projectId)
             parameter("status_id", "*")
+            if (subjectQuery.isNotBlank()) {
+                parameter("subject", "~$subjectQuery")
+            }
             parameter("sort", "updated_on:desc")
             parameter("limit", limit)
             parameter("offset", offset)

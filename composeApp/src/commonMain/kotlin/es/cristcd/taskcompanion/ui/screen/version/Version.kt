@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -28,17 +27,13 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import es.cristcd.taskcompanion.filter.ColumnDefinition
 import es.cristcd.taskcompanion.redmine.model.IssueListAnalytics
-import es.cristcd.taskcompanion.redmine.model.MultipleCustomField
 import es.cristcd.taskcompanion.redmine.model.RedmineIssue
-import es.cristcd.taskcompanion.redmine.model.SimpleCustomField
-import es.cristcd.taskcompanion.redmine.model.storyPoints
 import es.cristcd.taskcompanion.tracker.SettingsCache
 import es.cristcd.taskcompanion.ui.Screen
 import es.cristcd.taskcompanion.ui.common.FullscreenLoading
 import es.cristcd.taskcompanion.ui.common.PriorityIcon
 import es.cristcd.taskcompanion.ui.common.StatusBadge
 import es.cristcd.taskcompanion.util.popBackStackIfResumed
-import es.cristcd.taskcompanion.util.toDefaultFormatString
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.RowChart
 import ir.ehsannarmani.compose_charts.models.AnimationMode
@@ -47,7 +42,6 @@ import ir.ehsannarmani.compose_charts.models.Bars
 import ir.ehsannarmani.compose_charts.models.Pie
 import org.jetbrains.compose.resources.painterResource
 import task_companion.composeapp.generated.resources.*
-import kotlin.comparisons.compareBy
 import kotlin.time.ExperimentalTime
 
 
@@ -59,9 +53,10 @@ fun VersionScreen(id: Long, navController: NavHostController, viewmodel: Version
     }
 
     val state = viewmodel.version.collectAsState()
+    val query = viewmodel.query.collectAsState()
     when (val result = state.value) {
         is VersionResult.Loading -> FullscreenLoading(onCancel = { navController.popBackStackIfResumed() })
-        is VersionResult.Ok -> Version(result, navController, viewmodel::toggleFollowVersion, viewmodel::updateColumnSelection)
+        is VersionResult.Ok -> Version(result, query.value, navController, viewmodel::toggleFollowVersion, viewmodel::updateColumnSelection, viewmodel::updateQuery)
     }
 }
 
@@ -69,9 +64,11 @@ fun VersionScreen(id: Long, navController: NavHostController, viewmodel: Version
 @Composable
 fun Version(
     version: VersionResult.Ok,
+    query: String,
     navController: NavHostController,
     onFollowVersion: () -> Unit,
     onColumnVisibilityChange: (ColumnDefinition) -> Unit = {},
+    onQueryChange: (String) -> Unit = {},
 ) {
     var showChartsDialog by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -174,8 +171,11 @@ fun Version(
             IssueTable(
                 issues,
                 version.resultColumns,
+                query = query,
                 onColumnVisibilityChange = onColumnVisibilityChange,
-                onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
+                onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) },
+                onQueryChange = onQueryChange,
+            )
         }
     }
 }
@@ -278,13 +278,15 @@ fun RowChartByCategory(analytics: IssueListAnalytics) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IssueTable(
     issues: LazyPagingItems<RedmineIssue>,
     columnDefinitions: List<ColumnDefinition> = emptyList(),
+    query: String = "",
     onColumnVisibilityChange: (ColumnDefinition) -> Unit = {},
-    onClick: (RedmineIssue) -> Unit
+    onClick: (RedmineIssue) -> Unit,
+    onQueryChange: ((String) -> Unit)? = null,
 ) {
     val columnWidths = remember { mutableStateMapOf<Int, Int>() }
     val visibleColumns = remember(columnDefinitions) {
@@ -295,13 +297,32 @@ fun IssueTable(
     }
     LazyColumn(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
         item {
-            Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+            Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), verticalAlignment = Alignment.CenterVertically) {
+                if (onQueryChange != null) {
+                    OutlinedTextField(
+                        modifier = Modifier.padding(8.dp).weight(1f).height(IntrinsicSize.Min),
+                        shape = MaterialTheme.shapes.large,
+                        value = query,
+                        onValueChange = onQueryChange,
+                        leadingIcon = { Icon(painterResource(Res.drawable.search_24px), contentDescription = null) },
+                        trailingIcon = {
+                            if (query.isNotBlank()) {
+                                IconButton(
+                                    onClick = { onQueryChange("") },
+                                    content = {
+                                        Icon(painterResource(Res.drawable.cancel_24px), contentDescription = null)
+                                    })
+                            }
+                        },
+                    )
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
 
                 var expandColumnSettings by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(
                     expanded = expandColumnSettings,
                     onExpandedChange = { expandColumnSettings = it },
-                    modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
                     IconButton(onClick = { expandColumnSettings = true }) {
                         Icon(painterResource(Res.drawable.table_edit_24px), contentDescription = null)

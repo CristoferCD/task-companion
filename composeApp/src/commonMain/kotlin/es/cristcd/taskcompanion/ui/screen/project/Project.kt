@@ -36,17 +36,20 @@ fun ProjectScreen(projectId: Long, navController: NavHostController, viewmodel: 
     }
 
     val state = viewmodel.project.collectAsState()
+    val query = viewmodel.query.collectAsState()
     when (val result = state.value) {
         is ProjectResult.Loading -> FullscreenLoading(onCancel = { navController.popBackStackIfResumed() })
-        is ProjectResult.Ok -> Project(result, navController, onColumnVisibilityChange = viewmodel::updateColumnSelection)
+        is ProjectResult.Ok -> Project(result, query.value, navController, onColumnVisibilityChange = viewmodel::updateColumnSelection, viewmodel::updateQuery)
     }
 }
 
 @Composable
 fun Project(
     project: ProjectResult.Ok,
+    query: String,
     navController: NavHostController,
     onColumnVisibilityChange: (ColumnDefinition) -> Unit = {},
+    onQueryChange: (String) -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -74,7 +77,15 @@ fun Project(
             }
             if (selectedTabIndex == 0) {
                 val issues = project.recentIssues.collectAsLazyPagingItems()
-                IssueTable(issues, project.resultColumns, onColumnVisibilityChange = onColumnVisibilityChange, onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) })
+                Column(Modifier.background(MaterialTheme.colorScheme.surface)) {
+                    IssueTable(issues,
+                        project.resultColumns,
+                        query = query,
+                        onColumnVisibilityChange = onColumnVisibilityChange,
+                        onClick = { issue -> navController.navigate(Screen.Issue(issue.id)) },
+                        onQueryChange = onQueryChange,
+                    )
+                }
             } else if (selectedTabIndex == 1) {
                 VersionList(project.versions, onClick = { navController.navigate(Screen.Version(it.id)) })
             }
